@@ -1,5 +1,5 @@
 import requests
-import json
+import re
 from datetime import datetime
 from flask import Flask, jsonify
 
@@ -21,68 +21,59 @@ def send_feishu_message(token, content):
     res = requests.post(url, headers=headers, params={"receive_id_type": "chat_id"}, json=data)
     return res.json()
 
-def get_zhihu_hot():
+def get_tophub_data():
     try:
-        res = requests.get("https://www.zhihu.com/api/v3/feed/topstory/hot-lists/total?limit=10", headers={"User-Agent": "Mozilla/5.0"})
-        data = res.json()
-        items = []
-        for i, item in enumerate(data.get("data", [])[:10], 1):
-            target = item.get("target", {})
-            title = target.get("title", "")
-            items.append(f"{i}. {title}")
-        return items
-    except:
-        return ["获取失败"]
+        res = requests.get("https://tophub.today/", headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}, timeout=15)
+        html = res.text
+        
+        weibo = []
+        zhihu = []
+        bilibili = []
+        
+        weibo_pattern = re.findall(r'<a href="https://s\.weibo\.com[^"]*"[^>]*>\s*<span[^>]*>\d+</span>\s*<span[^>]*>(.*?)</span>', html)
+        for item in weibo_pattern[:10]:
+            weibo.append(item.strip())
+        
+        zhihu_pattern = re.findall(r'<a href="https://www\.zhihu\.com/question[^"]*"[^>]*>\s*<span[^>]*>\d+</span>\s*<span[^>]*>(.*?)</span>', html)
+        for item in zhihu_pattern[:10]:
+            zhihu.append(item.strip())
+        
+        bilibili_pattern = re.findall(r'<a href="https://www\.bilibili\.com/video[^"]*"[^>]*>\s*<span[^>]*>\d+</span>\s*<span[^>]*>(.*?)</span>', html)
+        for item in bilibili_pattern[:10]:
+            bilibili.append(item.strip())
+        
+        return weibo, zhihu, bilibili
+    except Exception as e:
+        return [], [], []
 
-def get_bilibili_hot():
-    try:
-        res = requests.get("https://api.bilibili.com/x/web-interface/ranking/v2?rid=0&type=all", headers={"User-Agent": "Mozilla/5.0"})
-        data = res.json()
-        items = []
-        for i, item in enumerate(data.get("data", {}).get("list", [])[:10], 1):
-            title = item.get("title", "")
-            items.append(f"{i}. {title}")
-        return items
-    except:
-        return ["获取失败"]
-
-def get_weibo_hot():
-    try:
-        res = requests.get("https://weibo.com/ajax/side/hotSearch", headers={"User-Agent": "Mozilla/5.0"})
-        data = res.json()
-        items = []
-        for i, item in enumerate(data.get("data", {}).get("realtime", [])[:10], 1):
-            word = item.get("word", "")
-            items.append(f"{i}. {word}")
-        return items
-    except:
-        return ["获取失败"]
-
-def build_card(zhihu, bilibili, weibo):
+def build_card(weibo, zhihu, bilibili):
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    
+    weibo_text = "\n".join([f"{i+1}. {item}" for i, item in enumerate(weibo[:10])]) if weibo else "获取失败"
+    zhihu_text = "\n".join([f"{i+1}. {item}" for i, item in enumerate(zhihu[:10])]) if zhihu else "获取失败"
+    bilibili_text = "\n".join([f"{i+1}. {item}" for i, item in enumerate(bilibili[:10])]) if bilibili else "获取失败"
+    
     return {
-        "header": {"title": {"tag": "plain_text", "content": f"🔥 每日热搜推送 - {now}"}, "template": "red"},
+        "header": {"title": {"tag": "plain_text", "content": f"每日热搜推送 - {now}"}, "template": "red"},
         "elements": [
-            {"tag": "markdown", "content": f"**📰 知乎热榜**\n" + "\n".join(zhihu)},
+            {"tag": "markdown", "content": f"**微博热搜**\n{weibo_text}"},
             {"tag": "hr"},
-            {"tag": "markdown", "content": f"**📺 哔哩哔哩热榜**\n" + "\n".join(bilibili)},
+            {"tag": "markdown", "content": f"**知乎热榜**\n{zhihu_text}"},
             {"tag": "hr"},
-            {"tag": "markdown", "content": f"**🔥 微博热搜**\n" + "\n".join(weibo)},
+            {"tag": "markdown", "content": f"**哔哩哔哩热榜**\n{bilibili_text}"},
         ]
     }
 
-@app.route('/')
+@app.route("/")
 def index():
     return jsonify({"status": "ok", "message": "热搜推送服务运行中"})
 
-@app.route('/push')
+@app.route("/push")
 def push():
     try:
-        zhihu = get_zhihu_hot()
-        bilibili = get_bilibili_hot()
-        weibo = get_weibo_hot()
+        weibo, zhihu, bilibili = get_tophub_data()
         token = get_tenant_token()
-        card = build_card(zhihu, bilibili, weibo)
+        card = build_card(weibo, zhihu, bilibili)
         result = send_feishu_message(token, card)
         if result.get("code") == 0:
             return jsonify({"status": "ok", "message": "发送成功"})
@@ -91,7 +82,7 @@ def push():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import os
-    port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port)
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)
