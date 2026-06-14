@@ -1,4 +1,5 @@
 import requests
+import re
 import json
 from datetime import datetime
 from flask import Flask, jsonify, Response
@@ -21,44 +22,24 @@ def send_feishu_message(token, content):
     res = requests.post(url, headers=headers, params={"receive_id_type": "chat_id"}, json=data)
     return res.json()
 
-def get_weibo_hot():
+def scrape_tophub(url):
     try:
-        res = requests.get("https://tenapi.cn/v2/weibohot", timeout=10)
-        data = res.json()
-        return [item.get("name", "") for item in data.get("data", [])[:10]]
-    except:
-        try:
-            res = requests.get("https://api.vvhan.com/api/hotlist/wbHot", timeout=10)
-            data = res.json()
-            return [item.get("title", "") for item in data.get("data", [])[:10]]
-        except:
-            return ["获取失败"]
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        res = requests.get(url, headers=headers, timeout=15)
+        html = res.text
+        items = re.findall(r'<span class="al">\s*<a[^>]*>(.*?)</a>', html, re.DOTALL)
+        return [item.strip() for item in items[:10] if item.strip()]
+    except Exception as e:
+        return ["获取失败"]
+
+def get_weibo_hot():
+    return scrape_tophub("https://tophub.today/n/KqndgxeLl9")
 
 def get_zhihu_hot():
-    try:
-        res = requests.get("https://tenapi.cn/v2/zhihuhot", timeout=10)
-        data = res.json()
-        return [item.get("name", "") for item in data.get("data", [])[:10]]
-    except:
-        try:
-            res = requests.get("https://api.vvhan.com/api/hotlist/zhihuHot", timeout=10)
-            data = res.json()
-            return [item.get("title", "") for item in data.get("data", [])[:10]]
-        except:
-            return ["获取失败"]
+    return scrape_tophub("https://tophub.today/n/mproPpoq6O")
 
 def get_bilibili_hot():
-    try:
-        res = requests.get("https://tenapi.cn/v2/bilibili", timeout=10)
-        data = res.json()
-        return [item.get("name", "") for item in data.get("data", [])[:10]]
-    except:
-        try:
-            res = requests.get("https://api.vvhan.com/api/hotlist/bili", timeout=10)
-            data = res.json()
-            return [item.get("title", "") for item in data.get("data", [])[:10]]
-        except:
-            return ["获取失败"]
+    return scrape_tophub("https://tophub.today/n/74KvxwokxM")
 
 def build_card(weibo, zhihu, bilibili):
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
