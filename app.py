@@ -1,6 +1,5 @@
 import requests
 import json
-import time
 from datetime import datetime
 from flask import Flask, jsonify, Response
 
@@ -22,38 +21,44 @@ def send_feishu_message(token, content):
     res = requests.post(url, headers=headers, params={"receive_id_type": "chat_id"}, json=data)
     return res.json()
 
-def get_hot_searches():
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-    
-    weibo = []
+def get_weibo_hot():
     try:
-        res = requests.get("https://weibo.com/ajax/side/hotSearch", headers=headers, timeout=10)
+        res = requests.get("https://tenapi.cn/v2/weibohot", timeout=10)
         data = res.json()
-        for item in data.get("data", {}).get("realtime", [])[:10]:
-            weibo.append(item.get("word", ""))
+        return [item.get("name", "") for item in data.get("data", [])[:10]]
     except:
-        weibo = ["获取失败"]
-    
-    zhihu = []
+        try:
+            res = requests.get("https://api.vvhan.com/api/hotlist/wbHot", timeout=10)
+            data = res.json()
+            return [item.get("title", "") for item in data.get("data", [])[:10]]
+        except:
+            return ["获取失败"]
+
+def get_zhihu_hot():
     try:
-        res = requests.get("https://www.zhihu.com/api/v3/feed/topstory/hot-lists/total?limit=10", headers=headers, timeout=10)
+        res = requests.get("https://tenapi.cn/v2/zhihuhot", timeout=10)
         data = res.json()
-        for item in data.get("data", [])[:10]:
-            target = item.get("target", {})
-            zhihu.append(target.get("title", ""))
+        return [item.get("name", "") for item in data.get("data", [])[:10]]
     except:
-        zhihu = ["获取失败"]
-    
-    bilibili = []
+        try:
+            res = requests.get("https://api.vvhan.com/api/hotlist/zhihuHot", timeout=10)
+            data = res.json()
+            return [item.get("title", "") for item in data.get("data", [])[:10]]
+        except:
+            return ["获取失败"]
+
+def get_bilibili_hot():
     try:
-        res = requests.get("https://api.bilibili.com/x/web-interface/ranking/v2?rid=0&type=all", headers=headers, timeout=10)
+        res = requests.get("https://tenapi.cn/v2/bilibili", timeout=10)
         data = res.json()
-        for item in data.get("data", {}).get("list", [])[:10]:
-            bilibili.append(item.get("title", ""))
+        return [item.get("name", "") for item in data.get("data", [])[:10]]
     except:
-        bilibili = ["获取失败"]
-    
-    return weibo, zhihu, bilibili
+        try:
+            res = requests.get("https://api.vvhan.com/api/hotlist/bili", timeout=10)
+            data = res.json()
+            return [item.get("title", "") for item in data.get("data", [])[:10]]
+        except:
+            return ["获取失败"]
 
 def build_card(weibo, zhihu, bilibili):
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -73,7 +78,9 @@ def build_card(weibo, zhihu, bilibili):
 
 @app.route("/")
 def index():
-    weibo, zhihu, bilibili = get_hot_searches()
+    weibo = get_weibo_hot()
+    zhihu = get_zhihu_hot()
+    bilibili = get_bilibili_hot()
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
     
     weibo_html = "".join([f'<li>{i+1}. {item}</li>' for i, item in enumerate(weibo[:10])])
@@ -98,8 +105,9 @@ h1{{text-align:center;color:#fff;margin-bottom:10px;font-size:28px}}
 .card ol{{padding-left:20px}}
 .card li{{padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:14px;color:#555}}
 .card li:last-child{{border-bottom:none}}
-.btn{{display:block;margin:30px auto 0;padding:12px 30px;background:#667eea;color:#fff;border:none;border-radius:25px;font-size:16px;cursor:pointer}}
+.btn{{display:inline-block;margin:10px 5px 0;padding:10px 20px;background:#667eea;color:#fff;border:none;border-radius:25px;font-size:14px;cursor:pointer}}
 .btn:hover{{background:#5a6fd6}}
+.btns{{text-align:center;margin-top:20px}}
 @media(max-width:768px){{.cards{{grid-template-columns:1fr}}}}
 </style>
 </head>
@@ -121,8 +129,10 @@ h1{{text-align:center;color:#fff;margin-bottom:10px;font-size:28px}}
 <ol>{bilibili_html}</ol>
 </div>
 </div>
+<div class="btns">
 <button class="btn" onclick="location.reload()">刷新</button>
 <button class="btn" onclick="push()">推送到飞书</button>
+</div>
 </div>
 <script>
 function push(){{
@@ -136,7 +146,9 @@ function push(){{
 @app.route("/push")
 def push():
     try:
-        weibo, zhihu, bilibili = get_hot_searches()
+        weibo = get_weibo_hot()
+        zhihu = get_zhihu_hot()
+        bilibili = get_bilibili_hot()
         token = get_tenant_token()
         card = build_card(weibo, zhihu, bilibili)
         result = send_feishu_message(token, card)
@@ -149,8 +161,7 @@ def push():
 
 @app.route("/api/hot")
 def api_hot():
-    weibo, zhihu, bilibili = get_hot_searches()
-    return jsonify({"weibo": weibo, "zhihu": zhihu, "bilibili": bilibili})
+    return jsonify({"weibo": get_weibo_hot(), "zhihu": get_zhihu_hot(), "bilibili": get_bilibili_hot()})
 
 if __name__ == "__main__":
     import os
