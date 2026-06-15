@@ -11,11 +11,33 @@ APP_SECRET = "7JOAZJEanZMAweftGNorxc2QqhaahuBS"
 CHAT_ID = "oc_e6c00175d7bf047de0f647d4c31db4f2"
 APP_TOKEN = "O87ebAsOKaDlsQst6nccQp2InTd"
 TABLE_ID = "tblsRVZOdBJQndkM"
+MINIMAX_API_KEY = "sk-cp-HebzlLy0eNiPmfxSE2Rghfr_hop33KPdJrPEZlCPn4OCb83v_sSvk-D2_WLkHcVHNNlo04uGdPEXsCDtlWQQVE3J6hnskSLzIDETE7zIA4P9BxRR6vZ_qOM"
 
 def get_token():
     url = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal"
     res = requests.post(url, json={"app_id": APP_ID, "app_secret": APP_SECRET})
     return res.json().get("tenant_access_token")
+
+def minimax_summarize(text, prompt="请总结这段内容的核心观点"):
+    url = "https://api.minimax.chat/v1/text/chatcompletion_v2"
+    headers = {
+        "Authorization": f"Bearer {MINIMAX_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "model": "MiniMax-Text-01",
+        "messages": [
+            {"role": "system", "content": "你是一个专业的文本总结助手。"},
+            {"role": "user", "content": f"{prompt}\n\n{text[:3000]}"}
+        ],
+        "temperature": 0.7,
+        "max_tokens": 500
+    }
+    res = requests.post(url, headers=headers, json=data, timeout=30)
+    result = res.json()
+    if "choices" in result:
+        return result["choices"][0]["message"]["content"]
+    return "总结失败"
 
 def resolve_short_url(url):
     try:
@@ -297,6 +319,32 @@ def webhook():
 @app.route("/api/hot")
 def api_hot():
     return jsonify({"status": "ok", "message": "热搜功能已禁用"})
+
+@app.route("/api/summarize", methods=["POST"])
+def api_summarize():
+    try:
+        data = request.json
+        bvid = data.get("bvid", "")
+        subtitle = data.get("subtitle", "")
+        prompt = data.get("prompt", "请总结这段字幕的核心观点，用简洁的中文回答")
+        
+        summary = minimax_summarize(subtitle, prompt)
+        
+        token = get_token()
+        url = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{APP_TOKEN}/tables/{TABLE_ID}/records"
+        headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+        
+        res = requests.get(url, headers=headers, params={"filter": f'CurrentValue.[BV号] = "{bvid}"'})
+        records = res.json().get("data", {}).get("items", [])
+        
+        if records:
+            record_id = records[0]["record_id"]
+            update_url = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{APP_TOKEN}/tables/{TABLE_ID}/records/{record_id}"
+            requests.put(update_url, headers=headers, json={"fields": {"简介": summary}})
+        
+        return jsonify({"status": "ok", "summary": summary})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
 
 @app.route("/api/collect")
 def api_collect():
