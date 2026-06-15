@@ -6,68 +6,323 @@
     <title>B站工具箱</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, sans-serif; background: linear-gradient(135deg, #00a1d6, #00609c); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
-        .container { background: #fff; border-radius: 16px; padding: 40px; max-width: 800px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
-        h1 { text-align: center; color: #00a1d6; margin-bottom: 30px; }
-        .section { margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
-        .section:last-child { border-bottom: none; }
-        .section-title { color: #333; font-size: 18px; margin-bottom: 15px; }
-        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
-        input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; }
-        input:focus { border-color: #00a1d6; outline: none; }
-        button { padding: 12px 24px; background: #00a1d6; color: #fff; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
-        button:hover { background: #0088c6; }
-        .result { margin-top: 20px; padding: 20px; background: #f5f5f5; border-radius: 8px; display: none; }
-        .result h3 { color: #333; margin-bottom: 10px; font-size: 16px; }
-        .result pre { white-space: pre-wrap; word-break: break-all; font-size: 14px; line-height: 1.6; max-height: 400px; overflow-y: auto; background: #fff; padding: 15px; border-radius: 8px; }
-        .error { color: #e74c3c; text-align: center; margin-top: 20px; display: none; }
-        .loading { text-align: center; display: none; margin-top: 20px; color: #666; }
-        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
-        .btn { flex: 1; padding: 10px; background: #00a1d6; color: #fff; border: none; border-radius: 8px; cursor: pointer; }
-        .btn:hover { background: #0088c6; }
-        .btn-secondary { background: #6c757d; }
-        .btn-secondary:hover { background: #5a6268; }
-        .hot-list { max-height: 500px; overflow-y: auto; }
-        .hot-item { display: flex; align-items: center; padding: 12px 10px; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background 0.2s; }
-        .hot-item:hover { background: #f5f8ff; }
-        .hot-rank { width: 28px; height: 28px; background: #00a1d6; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; margin-right: 12px; flex-shrink: 0; }
-        .hot-rank.top3 { background: linear-gradient(135deg, #ff6b6b, #ee5a24); }
-        .hot-rank.top10 { background: linear-gradient(135deg, #ffa502, #ff6348); }
-        .hot-info { flex: 1; }
-        .hot-keyword { font-size: 15px; color: #333; font-weight: 500; }
-        .hot-heat { font-size: 12px; color: #999; margin-top: 3px; }
-        .hot-heat span { color: #ff6b6b; font-weight: bold; }
-        .refresh-btn { margin-top: 15px; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); 
+            min-height: 100vh; 
+            padding: 20px;
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto;
+        }
+        h1 { 
+            text-align: center; 
+            color: #fff; 
+            margin-bottom: 10px;
+            font-size: 32px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-right: 12px;
+        }
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            border: 2px solid #eee;
+            background: #fff;
+            color: #666;
+            transition: all 0.3s;
+        }
+        .tab:hover {
+            border-color: #00a1d6;
+            color: #00a1d6;
+        }
+        .tab.active {
+            background: #00a1d6;
+            color: #fff;
+            border-color: #00a1d6;
+        }
+        .input-group { 
+            display: flex; 
+            gap: 10px; 
+            margin-bottom: 20px; 
+        }
+        input { 
+            flex: 1; 
+            padding: 14px 18px; 
+            border: 2px solid #eee; 
+            border-radius: 10px; 
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        input:focus { 
+            border-color: #00a1d6; 
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0,161,214,0.1);
+        }
+        button { 
+            padding: 14px 28px; 
+            background: linear-gradient(135deg, #00a1d6, #0088c6); 
+            color: #fff; 
+            border: none; 
+            border-radius: 10px; 
+            font-size: 16px; 
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        button:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,161,214,0.4);
+        }
+        .result { 
+            margin-top: 20px; 
+            padding: 20px; 
+            background: #f8f9fa; 
+            border-radius: 12px; 
+            display: none; 
+        }
+        .result h3 { 
+            color: #333; 
+            margin-bottom: 10px; 
+            font-size: 16px; 
+        }
+        .result pre { 
+            white-space: pre-wrap; 
+            word-break: break-all; 
+            font-size: 14px; 
+            line-height: 1.6; 
+            max-height: 400px; 
+            overflow-y: auto; 
+            background: #fff; 
+            padding: 15px; 
+            border-radius: 8px;
+            border: 1px solid #eee;
+        }
+        .error { 
+            color: #e74c3c; 
+            text-align: center; 
+            margin-top: 15px; 
+            display: none;
+            padding: 10px;
+            background: #fff5f5;
+            border-radius: 8px;
+        }
+        .loading { 
+            text-align: center; 
+            display: none; 
+            margin-top: 15px; 
+            color: #666;
+            padding: 10px;
+        }
+        .btn-group { 
+            display: flex; 
+            gap: 10px; 
+            margin-top: 15px; 
+        }
+        .btn { 
+            flex: 1; 
+            padding: 12px; 
+            background: linear-gradient(135deg, #00a1d6, #0088c6); 
+            color: #fff; 
+            border: none; 
+            border-radius: 10px; 
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        .btn:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,161,214,0.4);
+        }
+        .btn-secondary { 
+            background: linear-gradient(135deg, #6c757d, #5a6268); 
+        }
+        .hot-list { 
+            max-height: 500px; 
+            overflow-y: auto;
+        }
+        .hot-item { 
+            display: flex; 
+            align-items: center; 
+            padding: 12px 15px; 
+            border-bottom: 1px solid #f0f0f0; 
+            cursor: pointer; 
+            transition: all 0.2s;
+            border-radius: 8px;
+        }
+        .hot-item:hover { 
+            background: #f0f7ff;
+            transform: translateX(5px);
+        }
+        .hot-rank { 
+            width: 28px; 
+            height: 28px; 
+            background: linear-gradient(135deg, #00a1d6, #0088c6);
+            color: #fff; 
+            border-radius: 8px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 13px; 
+            font-weight: bold; 
+            margin-right: 12px; 
+            flex-shrink: 0; 
+        }
+        .hot-rank.top3 { 
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24); 
+        }
+        .hot-rank.top10 { 
+            background: linear-gradient(135deg, #ffa502, #ff6348); 
+        }
+        .hot-info { 
+            flex: 1; 
+        }
+        .hot-keyword { 
+            font-size: 15px; 
+            color: #333; 
+            font-weight: 500; 
+            margin-bottom: 2px;
+        }
+        .hot-meta { 
+            font-size: 12px; 
+            color: #999; 
+        }
+        .hot-heat { 
+            font-size: 13px; 
+            color: #ff6b6b; 
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .refresh-btn { 
+            margin-top: 15px;
+            width: 100%;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        @media (max-width: 900px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .platform-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        .bilibili-icon { background: #00a1d6; color: #fff; }
+        .weibo-icon { background: #ff6b6b; color: #fff; }
+        .zhihu-icon { background: #0066ff; color: #fff; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>B站工具箱</h1>
+        <h1>🚀 B站工具箱</h1>
+        <p class="subtitle">字幕提取 · 全网热搜 · 实时更新</p>
         
-        <div class="section">
-            <h2 class="section-title">字幕提取</h2>
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon" style="background: linear-gradient(135deg, #00a1d6, #0088c6); color: #fff;">📝</div>
+                <div class="card-title">字幕提取</div>
+            </div>
             <div class="input-group">
                 <input type="text" id="bvid" placeholder="输入BV号，如 BV1DQ7k6JE4P">
-                <button onclick="fetchSubtitle()">提取</button>
+                <button onclick="fetchSubtitle()">提取字幕</button>
             </div>
-            <div class="loading" id="loading">正在提取...</div>
+            <div class="loading" id="loading">⏳ 正在提取...</div>
             <div class="error" id="error"></div>
             <div class="result" id="result">
                 <h3 id="title"></h3>
                 <pre id="subtitle"></pre>
                 <div class="btn-group">
-                    <button class="btn" onclick="pushToFeishu()">推送到飞书</button>
-                    <button class="btn btn-secondary" onclick="saveToBase()">保存到表格</button>
+                    <button class="btn" onclick="pushToFeishu()">📤 推送到飞书</button>
+                    <button class="btn btn-secondary" onclick="saveToBase()">💾 保存到表格</button>
                 </div>
             </div>
         </div>
         
-        <div class="section">
-            <h2 class="section-title">哔哩哔哩热搜词</h2>
-            <div id="hot-loading" class="loading">加载中...</div>
-            <div id="hot-error" class="error"></div>
-            <div id="hot-list" class="hot-list"></div>
-            <button class="refresh-btn" onclick="fetchHotList()">刷新热搜</button>
+        <div class="grid">
+            <div class="card">
+                <div class="card-header">
+                    <div class="platform-icon bilibili-icon">📺</div>
+                    <div class="card-title">哔哩哔哩热搜</div>
+                </div>
+                <div id="bilibili-loading" class="loading">⏳ 加载中...</div>
+                <div id="bilibili-error" class="error"></div>
+                <div id="bilibili-list" class="hot-list"></div>
+                <button class="refresh-btn btn" onclick="fetchBilibiliHot()">🔄 刷新</button>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="platform-icon weibo-icon">🔥</div>
+                    <div class="card-title">微博热搜</div>
+                </div>
+                <div id="weibo-loading" class="loading">⏳ 加载中...</div>
+                <div id="weibo-error" class="error"></div>
+                <div id="weibo-list" class="hot-list"></div>
+                <button class="refresh-btn btn" onclick="fetchWeiboHot()">🔄 刷新</button>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="platform-icon zhihu-icon">💡</div>
+                    <div class="card-title">知乎热榜</div>
+                </div>
+                <div id="zhihu-loading" class="loading">⏳ 加载中...</div>
+                <div id="zhihu-error" class="error"></div>
+                <div id="zhihu-list" class="hot-list"></div>
+                <button class="refresh-btn btn" onclick="fetchZhihuHot()">🔄 刷新</button>
+            </div>
         </div>
     </div>
     
@@ -89,7 +344,7 @@
                 document.getElementById('subtitle').textContent = data.subtitle;
                 document.getElementById('result').style.display = 'block';
             } catch (e) {
-                document.getElementById('error').textContent = '错误: ' + e.message;
+                document.getElementById('error').textContent = '❌ ' + e.message;
                 document.getElementById('error').style.display = 'block';
             }
             document.getElementById('loading').style.display = 'none';
@@ -111,38 +366,82 @@
             alert(data.message);
         }
         
-        async function fetchHotList() {
-            document.getElementById('hot-loading').style.display = 'block';
-            document.getElementById('hot-error').style.display = 'none';
-            document.getElementById('hot-list').innerHTML = '';
-            
+        async function fetchBilibiliHot() {
+            document.getElementById('bilibili-loading').style.display = 'block';
+            document.getElementById('bilibili-error').style.display = 'none';
+            document.getElementById('bilibili-list').innerHTML = '';
             try {
-                var res = await fetch('/api/hot');
+                var res = await fetch('/api/hot?platform=bilibili');
                 var data = await res.json();
-                
-                if (data.status === 'error') {
-                    throw new Error(data.message);
-                }
-                
+                if (data.status === 'error') throw new Error(data.message);
                 var html = '';
                 data.data.forEach(function(item) {
                     var rankClass = item.rank <= 3 ? 'hot-rank top3' : (item.rank <= 10 ? 'hot-rank top10' : 'hot-rank');
-                    html += '<div class="hot-item" onclick="searchKeyword(\'' + item.keyword + '\')">';
+                    html += '<div class="hot-item" onclick="window.open(\'' + item.url + '\',\'_blank\')">';
                     html += '<div class="' + rankClass + '">' + item.rank + '</div>';
-                    html += '<div class="hot-info">';
-                    html += '<div class="hot-keyword">' + item.keyword + '</div>';
-                    html += '<div class="hot-heat">热度: <span>' + formatHeat(item.heat) + '</span></div>';
-                    html += '</div>';
+                    html += '<div class="hot-info"><div class="hot-keyword">' + item.keyword + '</div></div>';
+                    html += '<div class="hot-heat">' + formatHeat(item.heat) + '</div>';
                     html += '</div>';
                 });
-                
-                document.getElementById('hot-list').innerHTML = html;
+                document.getElementById('bilibili-list').innerHTML = html;
             } catch (e) {
-                document.getElementById('hot-error').textContent = '错误: ' + e.message;
-                document.getElementById('hot-error').style.display = 'block';
+                document.getElementById('bilibili-error').textContent = '❌ ' + e.message;
+                document.getElementById('bilibili-error').style.display = 'block';
             }
-            
-            document.getElementById('hot-loading').style.display = 'none';
+            document.getElementById('bilibili-loading').style.display = 'none';
+        }
+        
+        async function fetchWeiboHot() {
+            document.getElementById('weibo-loading').style.display = 'block';
+            document.getElementById('weibo-error').style.display = 'none';
+            document.getElementById('weibo-list').innerHTML = '';
+            try {
+                var res = await fetch('/api/hot?platform=weibo');
+                var data = await res.json();
+                if (data.status === 'error') throw new Error(data.message);
+                var html = '';
+                data.data.forEach(function(item) {
+                    var rankClass = item.rank <= 3 ? 'hot-rank top3' : (item.rank <= 10 ? 'hot-rank top10' : 'hot-rank');
+                    var label = item.label ? '<span style="color:#ff6b6b;font-size:11px;margin-left:5px;">' + item.label + '</span>' : '';
+                    html += '<div class="hot-item" onclick="window.open(\'' + item.url + '\',\'_blank\')">';
+                    html += '<div class="' + rankClass + '">' + item.rank + '</div>';
+                    html += '<div class="hot-info"><div class="hot-keyword">' + item.keyword + label + '</div></div>';
+                    html += '<div class="hot-heat">' + formatHeat(item.heat) + '</div>';
+                    html += '</div>';
+                });
+                document.getElementById('weibo-list').innerHTML = html;
+            } catch (e) {
+                document.getElementById('weibo-error').textContent = '❌ ' + e.message;
+                document.getElementById('weibo-error').style.display = 'block';
+            }
+            document.getElementById('weibo-loading').style.display = 'none';
+        }
+        
+        async function fetchZhihuHot() {
+            document.getElementById('zhihu-loading').style.display = 'block';
+            document.getElementById('zhihu-error').style.display = 'none';
+            document.getElementById('zhihu-list').innerHTML = '';
+            try {
+                var res = await fetch('/api/hot?platform=zhihu');
+                var data = await res.json();
+                if (data.status === 'error') throw new Error(data.message);
+                var html = '';
+                data.data.forEach(function(item) {
+                    var rankClass = item.rank <= 3 ? 'hot-rank top3' : (item.rank <= 10 ? 'hot-rank top10' : 'hot-rank');
+                    html += '<div class="hot-item" onclick="window.open(\'' + item.url + '\',\'_blank\')">';
+                    html += '<div class="' + rankClass + '">' + item.rank + '</div>';
+                    html += '<div class="hot-info"><div class="hot-keyword">' + item.keyword + '</div>';
+                    if (item.excerpt) html += '<div class="hot-meta">' + item.excerpt + '</div>';
+                    html += '</div>';
+                    html += '<div class="hot-heat">' + item.heat + '</div>';
+                    html += '</div>';
+                });
+                document.getElementById('zhihu-list').innerHTML = html;
+            } catch (e) {
+                document.getElementById('zhihu-error').textContent = '❌ ' + e.message;
+                document.getElementById('zhihu-error').style.display = 'block';
+            }
+            document.getElementById('zhihu-loading').style.display = 'none';
         }
         
         function formatHeat(num) {
@@ -152,11 +451,9 @@
             return num;
         }
         
-        function searchKeyword(keyword) {
-            window.open('https://search.bilibili.com/all?keyword=' + encodeURIComponent(keyword), '_blank');
-        }
-        
-        fetchHotList();
+        fetchBilibiliHot();
+        fetchWeiboHot();
+        fetchZhihuHot();
     </script>
 </body>
 </html>
