@@ -75,16 +75,21 @@ def get_bilibili_subtitle(bvid):
         content_data = content_res.json()
         subtitle_text = "\n".join([line["content"] for line in content_data["body"]])
         
+        cover = video_data["data"].get("pic", "")
+        desc = video_data["data"].get("desc", "")
+        
         return {
             "title": title,
             "author": author,
             "subtitle": subtitle_text,
+            "cover": cover,
+            "desc": desc,
             "hasSubtitle": True
         }, None
     except Exception as e:
         return None, str(e)
 
-def write_to_base(token, bvid, title, subtitle):
+def write_to_base(token, bvid, title, subtitle, author="", cover="", desc=""):
     url = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{APP_TOKEN}/tables/{TABLE_ID}/records"
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     data = {
@@ -92,7 +97,10 @@ def write_to_base(token, bvid, title, subtitle):
             "视频标题": title,
             "BV号": bvid,
             "字幕内容": subtitle[:2000],
-            "抓取时间": int(datetime.now().timestamp() * 1000)
+            "抓取时间": int(datetime.now().timestamp() * 1000),
+            "作者": author,
+            "封面图": cover,
+            "简介": desc
         }
     }
     res = requests.post(url, headers=headers, json=data)
@@ -276,7 +284,7 @@ def webhook():
                 send_feishu_message(token, chat_id, f"提取失败: {error}")
             else:
                 send_feishu_message(token, chat_id, f"字幕提取完成\n视频: {result['title']}\n作者: {result['author']}\n\n字幕内容:\n{result['subtitle'][:1000]}")
-                write_to_base(token, bvid, result["title"], result["subtitle"])
+                write_to_base(token, bvid, result["title"], result["subtitle"], result["author"], result["cover"], result["desc"])
     
     return jsonify({"code": 0})
 
