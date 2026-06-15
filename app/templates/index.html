@@ -7,8 +7,11 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, sans-serif; background: linear-gradient(135deg, #00a1d6, #00609c); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
-        .container { background: #fff; border-radius: 16px; padding: 40px; max-width: 600px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .container { background: #fff; border-radius: 16px; padding: 40px; max-width: 800px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
         h1 { text-align: center; color: #00a1d6; margin-bottom: 30px; }
+        .section { margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+        .section:last-child { border-bottom: none; }
+        .section-title { color: #333; font-size: 18px; margin-bottom: 15px; }
         .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
         input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; }
         input:focus { border-color: #00a1d6; outline: none; }
@@ -24,28 +27,53 @@
         .btn:hover { background: #0088c6; }
         .btn-secondary { background: #6c757d; }
         .btn-secondary:hover { background: #5a6268; }
+        .hot-list { max-height: 400px; overflow-y: auto; }
+        .hot-item { display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #f0f0f0; }
+        .hot-item:hover { background: #f9f9f9; }
+        .hot-rank { width: 30px; height: 30px; background: #00a1d6; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; margin-right: 15px; flex-shrink: 0; }
+        .hot-rank.top3 { background: #ff6b6b; }
+        .hot-info { flex: 1; }
+        .hot-title { font-size: 14px; color: #333; text-decoration: none; }
+        .hot-title:hover { color: #00a1d6; }
+        .hot-meta { font-size: 12px; color: #999; margin-top: 4px; }
+        .hot-play { color: #00a1d6; font-weight: bold; }
+        .refresh-btn { margin-top: 15px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>B站字幕提取</h1>
-        <div class="input-group">
-            <input type="text" id="bvid" placeholder="输入BV号，如 BV1DQ7k6JE4P">
-            <button onclick="fetchSubtitle()">提取</button>
-        </div>
-        <div class="loading" id="loading">正在提取...</div>
-        <div class="error" id="error"></div>
-        <div class="result" id="result">
-            <h3 id="title"></h3>
-            <pre id="subtitle"></pre>
-            <div class="btn-group">
-                <button class="btn" onclick="pushToFeishu()">推送到飞书</button>
-                <button class="btn btn-secondary" onclick="saveToBase()">保存到表格</button>
+        <h1>B站工具箱</h1>
+        
+        <div class="section">
+            <h2 class="section-title">字幕提取</h2>
+            <div class="input-group">
+                <input type="text" id="bvid" placeholder="输入BV号，如 BV1DQ7k6JE4P">
+                <button onclick="fetchSubtitle()">提取</button>
+            </div>
+            <div class="loading" id="loading">正在提取...</div>
+            <div class="error" id="error"></div>
+            <div class="result" id="result">
+                <h3 id="title"></h3>
+                <pre id="subtitle"></pre>
+                <div class="btn-group">
+                    <button class="btn" onclick="pushToFeishu()">推送到飞书</button>
+                    <button class="btn btn-secondary" onclick="saveToBase()">保存到表格</button>
+                </div>
             </div>
         </div>
+        
+        <div class="section">
+            <h2 class="section-title">哔哩哔哩热搜</h2>
+            <div id="hot-loading" class="loading">加载中...</div>
+            <div id="hot-error" class="error"></div>
+            <div id="hot-list" class="hot-list"></div>
+            <button class="refresh-btn" onclick="fetchHotList()">刷新热搜</button>
+        </div>
     </div>
+    
     <script>
         var currentData = null;
+        
         async function fetchSubtitle() {
             var bvid = document.getElementById('bvid').value.trim();
             if (!bvid) { alert('请输入BV号'); return; }
@@ -66,6 +94,7 @@
             }
             document.getElementById('loading').style.display = 'none';
         }
+        
         async function pushToFeishu() {
             if (!currentData) return;
             var bvid = document.getElementById('bvid').value.trim();
@@ -73,6 +102,7 @@
             var data = await res.json();
             alert(data.message);
         }
+        
         async function saveToBase() {
             if (!currentData) return;
             var bvid = document.getElementById('bvid').value.trim();
@@ -80,6 +110,49 @@
             var data = await res.json();
             alert(data.message);
         }
+        
+        async function fetchHotList() {
+            document.getElementById('hot-loading').style.display = 'block';
+            document.getElementById('hot-error').style.display = 'none';
+            document.getElementById('hot-list').innerHTML = '';
+            
+            try {
+                var res = await fetch('/api/hot');
+                var data = await res.json();
+                
+                if (data.status === 'error') {
+                    throw new Error(data.message);
+                }
+                
+                var html = '';
+                data.data.forEach(function(item) {
+                    var rankClass = item.rank <= 3 ? 'hot-rank top3' : 'hot-rank';
+                    html += '<div class="hot-item">';
+                    html += '<div class="' + rankClass + '">' + item.rank + '</div>';
+                    html += '<div class="hot-info">';
+                    html += '<a class="hot-title" href="' + item.url + '" target="_blank">' + item.title + '</a>';
+                    html += '<div class="hot-meta">' + item.author + ' · <span class="hot-play">' + formatPlay(item.play) + '</span>播放</div>';
+                    html += '</div>';
+                    html += '</div>';
+                });
+                
+                document.getElementById('hot-list').innerHTML = html;
+            } catch (e) {
+                document.getElementById('hot-error').textContent = '错误: ' + e.message;
+                document.getElementById('hot-error').style.display = 'block';
+            }
+            
+            document.getElementById('hot-loading').style.display = 'none';
+        }
+        
+        function formatPlay(num) {
+            if (num >= 10000) {
+                return (num / 10000).toFixed(1) + '万';
+            }
+            return num;
+        }
+        
+        fetchHotList();
     </script>
 </body>
 </html>
