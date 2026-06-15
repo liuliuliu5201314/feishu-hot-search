@@ -99,7 +99,7 @@ def write_to_base(token, bvid, title, subtitle, author="", cover="", desc=""):
     
     data = {
         "fields": {
-            "视频标题": title,
+            "标题": title,
             "BV号": bvid,
             "字幕内容": subtitle[:2000],
             "抓取时间": timestamp_ms,
