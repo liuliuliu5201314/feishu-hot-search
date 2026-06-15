@@ -16,13 +16,12 @@ class ZhihuHotService:
             res = requests.get(url, headers=self.headers, proxies=self.proxies, timeout=15)
             
             items = []
-            # 找到所有知乎热榜链接
             pattern = r'<a href="https://www\.zhihu\.com/question/[^"]+"[^>]*>(.*?)</a>'
             matches = re.findall(pattern, res.text)
             
             for i, title in enumerate(matches[:30], 1):
-                title = re.sub(r'<[^>]+>', '', title).strip()  # 去除HTML标签
-                if title and len(title) > 5:  # 过滤太短的内容
+                title = re.sub(r'<[^>]+>', '', title).strip()
+                if title and len(title) > 10:
                     items.append({
                         "rank": i,
                         "keyword": title,
