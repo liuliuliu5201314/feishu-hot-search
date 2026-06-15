@@ -313,6 +313,18 @@ def webhook():
             else:
                 send_feishu_message(token, chat_id, f"字幕提取完成\n视频: {result['title']}\n作者: {result['author']}\n\n字幕内容:\n{result['subtitle'][:1000]}")
                 write_to_base(token, bvid, result["title"], result["subtitle"], result["author"], result["cover"], result["desc"])
+                
+                summary = minimax_summarize(result["subtitle"], "请总结这段字幕的核心观点，用简洁的中文回答，不超过100字")
+                send_feishu_message(token, chat_id, f"AI总结:\n{summary}")
+                
+                url = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{APP_TOKEN}/tables/{TABLE_ID}/records"
+                headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+                res = requests.get(url, headers=headers, params={"filter": f'CurrentValue.[BV号] = "{bvid}"'})
+                records = res.json().get("data", {}).get("items", [])
+                if records:
+                    record_id = records[0]["record_id"]
+                    update_url = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{APP_TOKEN}/tables/{TABLE_ID}/records/{record_id}"
+                    requests.put(update_url, headers=headers, json={"fields": {"AI总结": summary}})
     
     return jsonify({"code": 0})
 
