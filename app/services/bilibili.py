@@ -48,7 +48,7 @@ class BilibiliService:
             
             subtitles = dm_data.get("data", {}).get("subtitle", {}).get("subtitles", [])
             if not subtitles:
-                return {"title": title, "author": author, "subtitle": "该视频没有字幕", "cover": cover, "desc": desc, "hasSubtitle": False}, None
+                return {"title": title, "author": author, "subtitle": "该视频没有字幕", "封面图": cover, "desc": desc, "hasSubtitle": False}, None
             
             sub = subtitles[0]
             for s in subtitles:
