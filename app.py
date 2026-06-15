@@ -298,6 +298,22 @@ def webhook():
 def api_hot():
     return jsonify({"status": "ok", "message": "热搜功能已禁用"})
 
+@app.route("/api/collect")
+def api_collect():
+    try:
+        token = get_token()
+        bvids = ["BV1DQ7k6JE4P", "BV1oDVv6wENJ"]
+        
+        for bvid in bvids:
+            result, error = get_bilibili_subtitle(bvid)
+            if not error and result:
+                write_to_base(token, bvid, result["title"], result["subtitle"], result["author"], result["cover"], result["desc"])
+                send_feishu_message(token, CHAT_ID, f"定时采集完成\n视频: {result['title']}\n作者: {result['author']}")
+        
+        return jsonify({"status": "ok", "message": f"采集完成，共{len(bvids)}个视频"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
+
 if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 8080))
