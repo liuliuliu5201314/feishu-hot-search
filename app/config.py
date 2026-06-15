@@ -11,8 +11,8 @@ class Config:
     TABLE_ID = os.environ.get("TABLE_ID", "tblsRVZOdBJQndkM")
     
     # 飞书多维表格配置 - 热搜数据
-    HOT_BASE_TOKEN = os.environ.get("HOT_BASE_TOKEN", "XPAcblniKatqfjsw4v7cr5Ain8d")
-    HOT_TABLE_ID = os.environ.get("HOT_TABLE_ID", "tbl9vHI9I3Wxc4a9")
+    HOT_BASE_TOKEN = os.environ.get("HOT_BASE_TOKEN", "YoZQbG6KpakTEjsJa01c4xOZnMe")
+    HOT_TABLE_ID = os.environ.get("HOT_TABLE_ID", "tblLv11iIPrg93ls")
     
     # MiniMax API配置
     MINIMAX_API_KEY = os.environ.get("MINIMAX_API_KEY", "sk-cp-HebzlLy0eNiPmfxSE2Rghfr_hop33KPdJrPEZlCPn4OCb83v_sSvk-D2_WLkHcVHNNlo04uGdPEXsCDtlWQQVE3J6hnskSLzIDETE7zIA4P9BxRR6vZ_qOM")
