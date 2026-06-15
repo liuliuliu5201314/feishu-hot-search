@@ -340,7 +340,7 @@ def api_summarize():
         if records:
             record_id = records[0]["record_id"]
             update_url = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{APP_TOKEN}/tables/{TABLE_ID}/records/{record_id}"
-            requests.put(update_url, headers=headers, json={"fields": {"简介": summary}})
+            requests.put(update_url, headers=headers, json={"fields": {"AI总结": summary}})
         
         return jsonify({"status": "ok", "summary": summary})
     except Exception as e:
