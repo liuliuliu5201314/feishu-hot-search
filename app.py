@@ -8,8 +8,8 @@ app = Flask(__name__)
 APP_ID = "cli_aa913ad0d7389cb6"
 APP_SECRET = "7JOAZJEanZMAweftGNorxc2QqhaahuBS"
 CHAT_ID = "oc_e6c00175d7bf047de0f647d4c31db4f2"
-APP_TOKEN = "Zt1RboEwoatgaYsN9Hwcpgm6nYc"
-TABLE_ID = "tbltiy9UgipbJSZY"
+APP_TOKEN = "O87ebAsOKaDlsQst6nccQp2InTd"
+TABLE_ID = "tblsRVZOdBJQndkM"
 
 def get_token():
     url = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal"
