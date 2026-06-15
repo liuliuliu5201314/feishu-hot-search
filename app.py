@@ -92,12 +92,18 @@ def get_bilibili_subtitle(bvid):
 def write_to_base(token, bvid, title, subtitle, author="", cover="", desc=""):
     url = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{APP_TOKEN}/tables/{TABLE_ID}/records"
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    
+    now = datetime.now()
+    timestamp_ms = int(now.timestamp() * 1000)
+    create_time_str = now.strftime("%Y-%m-%d %H:%M:%S")
+    
     data = {
         "fields": {
             "视频标题": title,
             "BV号": bvid,
             "字幕内容": subtitle[:2000],
-            "抓取时间": int(datetime.now().timestamp() * 1000),
+            "抓取时间": timestamp_ms,
+            "创建时间": timestamp_ms,
             "作者": author,
             "封面图": cover,
             "简介": desc
