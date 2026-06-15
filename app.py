@@ -1,19 +1,79 @@
 import requests
-import re
 import json
 from datetime import datetime
-from flask import Flask, jsonify, Response
+from flask import Flask, jsonify, Response, request
 
 app = Flask(__name__)
 
 APP_ID = "cli_aa913ad0d7389cb6"
 APP_SECRET = "7JOAZJEanZMAweftGNorxc2QqhaahuBS"
 CHAT_ID = "oc_e6c00175d7bf047de0f647d4c31db4f2"
+APP_TOKEN = "Zt1RboEwoatgaYsN9Hwcpgm6nYc"
+TABLE_ID = "tbltiy9UgipbJSZY"
 
-def get_tenant_token():
+def get_token():
     url = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal"
     res = requests.post(url, json={"app_id": APP_ID, "app_secret": APP_SECRET})
     return res.json().get("tenant_access_token")
+
+def get_bilibili_subtitle(bvid):
+    headers = {"User-Agent": "Mozilla/5.0", "Referer": "https://www.bilibili.com/"}
+    try:
+        video_res = requests.get(f"https://api.bilibili.com/x/web-interface/view?bvid={bvid}", headers=headers, timeout=10)
+        video_data = video_res.json()
+        if video_data["code"] != 0:
+            return None, "视频不存在"
+        
+        cid = video_data["data"]["cid"]
+        aid = video_data["data"]["aid"]
+        title = video_data["data"]["title"]
+        author = video_data["data"]["owner"]["name"]
+        
+        dm_res = requests.get(f"https://api.bilibili.com/x/v2/dm/view?aid={aid}&type=1&oid={cid}", headers=headers, timeout=10)
+        dm_data = dm_res.json()
+        
+        subtitles = dm_data.get("data", {}).get("subtitle", {}).get("subtitles", [])
+        if not subtitles:
+            return {"title": title, "author": author, "subtitle": "该视频没有字幕", "hasSubtitle": False}, None
+        
+        sub = subtitles[0]
+        for s in subtitles:
+            if s["lan"] == "ai-zh":
+                sub = s
+                break
+        
+        sub_url = sub["subtitle_url"]
+        if sub_url.startswith("//"):
+            sub_url = "https:" + sub_url
+        if sub_url.startswith("http://"):
+            sub_url = sub_url.replace("http://", "https://")
+        
+        content_res = requests.get(sub_url, timeout=10)
+        content_data = content_res.json()
+        subtitle_text = "\n".join([line["content"] for line in content_data["body"]])
+        
+        return {
+            "title": title,
+            "author": author,
+            "subtitle": subtitle_text,
+            "hasSubtitle": True
+        }, None
+    except Exception as e:
+        return None, str(e)
+
+def write_to_base(token, bvid, title, subtitle):
+    url = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{APP_TOKEN}/tables/{TABLE_ID}/records"
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    data = {
+        "fields": {
+            "视频标题": title,
+            "BV号": bvid,
+            "字幕内容": subtitle[:2000],
+            "抓取时间": int(datetime.now().timestamp() * 1000)
+        }
+    }
+    res = requests.post(url, headers=headers, json=data)
+    return res.json()
 
 def send_feishu_message(token, content):
     url = "https://open.feishu.cn/open-apis/im/v1/messages"
@@ -22,127 +82,143 @@ def send_feishu_message(token, content):
     res = requests.post(url, headers=headers, params={"receive_id_type": "chat_id"}, json=data)
     return res.json()
 
-def scrape_tophub(url):
-    try:
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-        res = requests.get(url, headers=headers, timeout=15)
-        html = res.text
-        items = re.findall(r'<span class="al">\s*<a[^>]*>(.*?)</a>', html, re.DOTALL)
-        return [item.strip() for item in items[:10] if item.strip()]
-    except Exception as e:
-        return ["获取失败"]
-
-def get_weibo_hot():
-    return scrape_tophub("https://tophub.today/n/KqndgxeLl9")
-
-def get_zhihu_hot():
-    return scrape_tophub("https://tophub.today/n/mproPpoq6O")
-
-def get_bilibili_hot():
-    return scrape_tophub("https://tophub.today/n/74KvxwokxM")
-
-def build_card(weibo, zhihu, bilibili):
+def build_subtitle_card(bvid, title, author, subtitle):
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
-    weibo_text = "\n".join([f"{i+1}. {item}" for i, item in enumerate(weibo[:10])])
-    zhihu_text = "\n".join([f"{i+1}. {item}" for i, item in enumerate(zhihu[:10])])
-    bilibili_text = "\n".join([f"{i+1}. {item}" for i, item in enumerate(bilibili[:10])])
+    subtitle_preview = subtitle[:500] + "..." if len(subtitle) > 500 else subtitle
     return {
-        "header": {"title": {"tag": "plain_text", "content": f"每日热搜推送 - {now}"}, "template": "red"},
+        "header": {"title": {"tag": "plain_text", "content": f"B站字幕提取 - {now}"}, "template": "blue"},
         "elements": [
-            {"tag": "markdown", "content": f"**微博热搜**\n{weibo_text}"},
+            {"tag": "markdown", "content": f"**视频标题**: {title}\n**作者**: {author}\n**BV号**: {bvid}"},
             {"tag": "hr"},
-            {"tag": "markdown", "content": f"**知乎热榜**\n{zhihu_text}"},
-            {"tag": "hr"},
-            {"tag": "markdown", "content": f"**哔哩哔哩热榜**\n{bilibili_text}"},
+            {"tag": "markdown", "content": f"**字幕内容**:\n{subtitle_preview}"},
         ]
     }
 
 @app.route("/")
 def index():
-    weibo = get_weibo_hot()
-    zhihu = get_zhihu_hot()
-    bilibili = get_bilibili_hot()
-    now = datetime.now().strftime("%Y-%m-%d %H:%M")
-    
-    weibo_html = "".join([f'<li>{i+1}. {item}</li>' for i, item in enumerate(weibo[:10])])
-    zhihu_html = "".join([f'<li>{i+1}. {item}</li>' for i, item in enumerate(zhihu[:10])])
-    bilibili_html = "".join([f'<li>{i+1}. {item}</li>' for i, item in enumerate(bilibili[:10])])
-    
-    html = f"""<!DOCTYPE html>
+    html = """<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>每日热搜</title>
+<title>B站字幕提取</title>
 <style>
-*{{margin:0;padding:0;box-sizing:border-box}}
-body{{font-family:-apple-system,sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;padding:20px}}
-.container{{max-width:1000px;margin:0 auto}}
-h1{{text-align:center;color:#fff;margin-bottom:10px;font-size:28px}}
-.time{{text-align:center;color:rgba(255,255,255,0.8);margin-bottom:20px}}
-.cards{{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}}
-.card{{background:#fff;border-radius:12px;padding:20px;box-shadow:0 4px 20px rgba(0,0,0,0.1)}}
-.card h2{{color:#333;margin-bottom:15px;font-size:18px;border-bottom:2px solid #667eea;padding-bottom:10px}}
-.card ol{{padding-left:20px}}
-.card li{{padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:14px;color:#555}}
-.card li:last-child{{border-bottom:none}}
-.btn{{display:inline-block;margin:10px 5px 0;padding:10px 20px;background:#667eea;color:#fff;border:none;border-radius:25px;font-size:14px;cursor:pointer}}
-.btn:hover{{background:#5a6fd6}}
-.btns{{text-align:center;margin-top:20px}}
-@media(max-width:768px){{.cards{{grid-template-columns:1fr}}}}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,sans-serif;background:linear-gradient(135deg,#00a1d6,#00609c);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
+.container{background:#fff;border-radius:16px;padding:40px;max-width:600px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
+h1{text-align:center;color:#00a1d6;margin-bottom:30px}
+.input-group{display:flex;gap:10px;margin-bottom:20px}
+input{flex:1;padding:12px;border:2px solid #ddd;border-radius:8px;font-size:16px}
+input:focus{border-color:#00a1d6;outline:none}
+button{padding:12px 24px;background:#00a1d6;color:#fff;border:none;border-radius:8px;font-size:16px;cursor:pointer}
+button:hover{background:#0088c6}
+.result{margin-top:20px;padding:20px;background:#f5f5f5;border-radius:8px;display:none}
+.result h3{color:#333;margin-bottom:10px;font-size:16px}
+.result pre{white-space:pre-wrap;word-break:break-all;font-size:14px;line-height:1.6;max-height:400px;overflow-y:auto;background:#fff;padding:15px;border-radius:8px}
+.error{color:#e74c3c;text-align:center;margin-top:20px;display:none}
+.loading{text-align:center;display:none;margin-top:20px;color:#666}
+.btn-group{display:flex;gap:10px;margin-top:15px}
+.btn{flex:1;padding:10px;background:#00a1d6;color:#fff;border:none;border-radius:8px;cursor:pointer}
+.btn:hover{background:#0088c6}
+.btn-secondary{background:#6c757d}
+.btn-secondary:hover{background:#5a6268}
 </style>
 </head>
 <body>
 <div class="container">
-<h1>每日热搜</h1>
-<p class="time">更新时间: {now}</p>
-<div class="cards">
-<div class="card">
-<h2>微博热搜</h2>
-<ol>{weibo_html}</ol>
+<h1>B站字幕提取</h1>
+<div class="input-group">
+<input type="text" id="bvid" placeholder="输入BV号，如 BV1DQ7k6JE4P">
+<button onclick="fetchSubtitle()">提取</button>
 </div>
-<div class="card">
-<h2>知乎热榜</h2>
-<ol>{zhihu_html}</ol>
+<div class="loading" id="loading">正在提取...</div>
+<div class="error" id="error"></div>
+<div class="result" id="result">
+<h3 id="title"></h3>
+<pre id="subtitle"></pre>
+<div class="btn-group">
+<button class="btn" onclick="pushToFeishu()">推送到飞书</button>
+<button class="btn btn-secondary" onclick="saveToBase()">保存到表格</button>
 </div>
-<div class="card">
-<h2>哔哩哔哩热榜</h2>
-<ol>{bilibili_html}</ol>
-</div>
-</div>
-<div class="btns">
-<button class="btn" onclick="location.reload()">刷新</button>
-<button class="btn" onclick="push()">推送到飞书</button>
 </div>
 </div>
 <script>
-function push(){{
-  fetch('/push').then(r=>r.json()).then(d=>alert(d.message)).catch(e=>alert('推送失败'));
-}}
+var currentData = null;
+async function fetchSubtitle() {
+  var bvid = document.getElementById('bvid').value.trim();
+  if (!bvid) { alert('请输入BV号'); return; }
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('error').style.display = 'none';
+  document.getElementById('result').style.display = 'none';
+  try {
+    var res = await fetch('/api/subtitle?bvid=' + encodeURIComponent(bvid));
+    var data = await res.json();
+    if (data.error) { throw new Error(data.error); }
+    currentData = data;
+    document.getElementById('title').textContent = data.title + ' - ' + data.author;
+    document.getElementById('subtitle').textContent = data.subtitle;
+    document.getElementById('result').style.display = 'block';
+  } catch (e) {
+    document.getElementById('error').textContent = '错误: ' + e.message;
+    document.getElementById('error').style.display = 'block';
+  }
+  document.getElementById('loading').style.display = 'none';
+}
+async function pushToFeishu() {
+  if (!currentData) return;
+  var bvid = document.getElementById('bvid').value.trim();
+  var res = await fetch('/api/push', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({bvid:bvid, title:currentData.title, author:currentData.author, subtitle:currentData.subtitle})});
+  var data = await res.json();
+  alert(data.message);
+}
+async function saveToBase() {
+  if (!currentData) return;
+  var bvid = document.getElementById('bvid').value.trim();
+  var res = await fetch('/api/save', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({bvid:bvid, title:currentData.title, subtitle:currentData.subtitle})});
+  var data = await res.json();
+  alert(data.message);
+}
 </script>
 </body>
 </html>"""
     return Response(html, content_type="text/html;charset=utf-8")
 
-@app.route("/push")
-def push():
+@app.route("/api/subtitle")
+def api_subtitle():
+    bvid = request.args.get("bvid", "")
+    if not bvid:
+        return jsonify({"error": "请提供 bvid 参数"})
+    data, error = get_bilibili_subtitle(bvid)
+    if error:
+        return jsonify({"error": error})
+    return jsonify(data)
+
+@app.route("/api/push", methods=["POST"])
+def api_push():
     try:
-        weibo = get_weibo_hot()
-        zhihu = get_zhihu_hot()
-        bilibili = get_bilibili_hot()
-        token = get_tenant_token()
-        card = build_card(weibo, zhihu, bilibili)
+        data = request.json
+        token = get_token()
+        card = build_subtitle_card(data["bvid"], data["title"], data["author"], data["subtitle"])
         result = send_feishu_message(token, card)
         if result.get("code") == 0:
-            return jsonify({"status": "ok", "message": "发送成功"})
+            return jsonify({"status": "ok", "message": "推送成功"})
         else:
-            return jsonify({"status": "error", "message": result})
+            return jsonify({"status": "error", "message": str(result)})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
 
-@app.route("/api/hot")
-def api_hot():
-    return jsonify({"weibo": get_weibo_hot(), "zhihu": get_zhihu_hot(), "bilibili": get_bilibili_hot()})
+@app.route("/api/save", methods=["POST"])
+def api_save():
+    try:
+        data = request.json
+        token = get_token()
+        result = write_to_base(token, data["bvid"], data["title"], data["subtitle"])
+        if result.get("code") == 0:
+            return jsonify({"status": "ok", "message": "保存成功"})
+        else:
+            return jsonify({"status": "error", "message": str(result)})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
 
 if __name__ == "__main__":
     import os
