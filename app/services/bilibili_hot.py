@@ -7,7 +7,7 @@ class BilibiliHotService:
     
     def get_hot_list(self):
         try:
-            url = "https://api.bilibili.com/x/web-interface/ranking/v2?rid=0&type=all"
+            url = "https://api.bilibili.com/x/web-interface/wbi/search/square?limit=50"
             res = requests.get(url, headers=self.headers, timeout=10)
             data = res.json()
             
@@ -15,14 +15,17 @@ class BilibiliHotService:
                 return [], "获取失败"
             
             items = []
-            for i, item in enumerate(data.get("data", {}).get("list", [])[:20], 1):
+            for i, item in enumerate(data.get("data", {}).get("trending", {}).get("list", [])[:30], 1):
+                keyword = item.get("keyword", "")
+                show_name = item.get("show_name", "")
+                heat = item.get("heat_score", 0)
+                
                 items.append({
                     "rank": i,
-                    "title": item.get("title", ""),
-                    "author": item.get("owner", {}).get("name", ""),
-                    "play": item.get("stat", {}).get("view", 0),
-                    "bvid": item.get("bvid", ""),
-                    "url": f"https://www.bilibili.com/video/{item.get('bvid', '')}"
+                    "keyword": keyword,
+                    "show_name": show_name,
+                    "heat": heat,
+                    "url": f"https://search.bilibili.com/all?keyword={keyword}"
                 })
             
             return items, None
