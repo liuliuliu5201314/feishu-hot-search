@@ -13,5 +13,11 @@ class Config:
     # MiniMax API配置
     MINIMAX_API_KEY = os.environ.get("MINIMAX_API_KEY", "sk-cp-HebzlLy0eNiPmfxSE2Rghfr_hop33KPdJrPEZlCPn4OCb83v_sSvk-D2_WLkHcVHNNlo04uGdPEXsCDtlWQQVE3J6hnskSLzIDETE7zIA4P9BxRR6vZ_qOM")
     
+    # 代理配置
+    PROXY = {
+        "http": "socks5://User-001:User-001@115.190.242.8:1080",
+        "https": "socks5://User-001:User-001@115.190.242.8:1080"
+    }
+    
     # 服务配置
     PORT = int(os.environ.get("PORT", 8080))

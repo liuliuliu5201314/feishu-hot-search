@@ -1,10 +1,12 @@
 import requests
 import re
+from ..config import Config
 
 
 class BilibiliService:
     def __init__(self):
         self.headers = {"User-Agent": "Mozilla/5.0", "Referer": "https://www.bilibili.com/"}
+        self.proxies = Config.PROXY
     
     def resolve_short_url(self, url):
         try:
@@ -30,7 +32,7 @@ class BilibiliService:
     
     def get_subtitle(self, bvid):
         try:
-            video_res = requests.get(f"https://api.bilibili.com/x/web-interface/view?bvid={bvid}", headers=self.headers, timeout=10)
+            video_res = requests.get(f"https://api.bilibili.com/x/web-interface/view?bvid={bvid}", headers=self.headers, proxies=self.proxies, timeout=15)
             video_data = video_res.json()
             
             if video_data["code"] != 0:
@@ -43,7 +45,7 @@ class BilibiliService:
             cover = video_data["data"].get("pic", "")
             desc = video_data["data"].get("desc", "")
             
-            dm_res = requests.get(f"https://api.bilibili.com/x/v2/dm/view?aid={aid}&type=1&oid={cid}", headers=self.headers, timeout=10)
+            dm_res = requests.get(f"https://api.bilibili.com/x/v2/dm/view?aid={aid}&type=1&oid={cid}", headers=self.headers, proxies=self.proxies, timeout=15)
             dm_data = dm_res.json()
             
             subtitles = dm_data.get("data", {}).get("subtitle", {}).get("subtitles", [])
@@ -62,7 +64,7 @@ class BilibiliService:
             if sub_url.startswith("http://"):
                 sub_url = sub_url.replace("http://", "https://")
             
-            content_res = requests.get(sub_url, timeout=10)
+            content_res = requests.get(sub_url, proxies=self.proxies, timeout=15)
             content_data = content_res.json()
             subtitle_text = "\n".join([line["content"] for line in content_data["body"]])
             
