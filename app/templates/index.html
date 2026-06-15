@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B站字幕提取</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, sans-serif; background: linear-gradient(135deg, #00a1d6, #00609c); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .container { background: #fff; border-radius: 16px; padding: 40px; max-width: 600px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        h1 { text-align: center; color: #00a1d6; margin-bottom: 30px; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; }
+        input:focus { border-color: #00a1d6; outline: none; }
+        button { padding: 12px 24px; background: #00a1d6; color: #fff; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+        button:hover { background: #0088c6; }
+        .result { margin-top: 20px; padding: 20px; background: #f5f5f5; border-radius: 8px; display: none; }
+        .result h3 { color: #333; margin-bottom: 10px; font-size: 16px; }
+        .result pre { white-space: pre-wrap; word-break: break-all; font-size: 14px; line-height: 1.6; max-height: 400px; overflow-y: auto; background: #fff; padding: 15px; border-radius: 8px; }
+        .error { color: #e74c3c; text-align: center; margin-top: 20px; display: none; }
+        .loading { text-align: center; display: none; margin-top: 20px; color: #666; }
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
+        .btn { flex: 1; padding: 10px; background: #00a1d6; color: #fff; border: none; border-radius: 8px; cursor: pointer; }
+        .btn:hover { background: #0088c6; }
+        .btn-secondary { background: #6c757d; }
+        .btn-secondary:hover { background: #5a6268; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>B站字幕提取</h1>
+        <div class="input-group">
+            <input type="text" id="bvid" placeholder="输入BV号，如 BV1DQ7k6JE4P">
+            <button onclick="fetchSubtitle()">提取</button>
+        </div>
+        <div class="loading" id="loading">正在提取...</div>
+        <div class="error" id="error"></div>
+        <div class="result" id="result">
+            <h3 id="title"></h3>
+            <pre id="subtitle"></pre>
+            <div class="btn-group">
+                <button class="btn" onclick="pushToFeishu()">推送到飞书</button>
+                <button class="btn btn-secondary" onclick="saveToBase()">保存到表格</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        var currentData = null;
+        async function fetchSubtitle() {
+            var bvid = document.getElementById('bvid').value.trim();
+            if (!bvid) { alert('请输入BV号'); return; }
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('result').style.display = 'none';
+            try {
+                var res = await fetch('/api/subtitle?bvid=' + encodeURIComponent(bvid));
+                var data = await res.json();
+                if (data.error) { throw new Error(data.error); }
+                currentData = data;
+                document.getElementById('title').textContent = data.title + ' - ' + data.author;
+                document.getElementById('subtitle').textContent = data.subtitle;
+                document.getElementById('result').style.display = 'block';
+            } catch (e) {
+                document.getElementById('error').textContent = '错误: ' + e.message;
+                document.getElementById('error').style.display = 'block';
+            }
+            document.getElementById('loading').style.display = 'none';
+        }
+        async function pushToFeishu() {
+            if (!currentData) return;
+            var bvid = document.getElementById('bvid').value.trim();
+            var res = await fetch('/api/push', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({bvid:bvid, title:currentData.title, author:currentData.author, subtitle:currentData.subtitle})});
+            var data = await res.json();
+            alert(data.message);
+        }
+        async function saveToBase() {
+            if (!currentData) return;
+            var bvid = document.getElementById('bvid').value.trim();
+            var res = await fetch('/api/save', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({bvid:bvid, title:currentData.title, subtitle:currentData.subtitle})});
+            var data = await res.json();
+            alert(data.message);
+        }
+    </script>
+</body>
+</html>
