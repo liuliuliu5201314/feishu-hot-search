@@ -70,7 +70,7 @@ class BilibiliService:
                 "title": title,
                 "author": author,
                 "subtitle": subtitle_text,
-                "cover": cover,
+                "封面图": cover,
                 "desc": desc,
                 "hasSubtitle": True
             }, None

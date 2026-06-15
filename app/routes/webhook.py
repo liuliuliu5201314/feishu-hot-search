@@ -56,7 +56,7 @@ def webhook():
                     "抓取时间": timestamp_ms,
                     "创建时间": timestamp_ms,
                     "作者": result["author"],
-                    "封面图": result["cover"],
+                    "封面图": result["封面图"],
                     "简介": result["desc"],
                     "minimax总结": summary
                 })

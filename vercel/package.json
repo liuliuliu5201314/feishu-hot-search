@@ -1,0 +1,11 @@
+{
+  "name": "feishu-bot-vercel",
+  "version": "1.0.0",
+  "description": "飞书机器人 - B站字幕提取",
+  "main": "api/webhook.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel deploy"
+  },
+  "dependencies": {}
+}

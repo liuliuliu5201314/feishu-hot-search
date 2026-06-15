@@ -42,17 +42,17 @@ def api_save():
         now = datetime.now()
         timestamp_ms = int(now.timestamp() * 1000)
         
-        feishu.write_to_base(token, {
-            "视频标题": data["title"],
-            "BV号": data["bvid"],
-            "字幕内容": data["subtitle"][:2000],
-            "抓取时间": timestamp_ms,
-            "创建时间": timestamp_ms,
-            "作者": data.get("author", ""),
-            "封面图": data.get("cover", ""),
-            "简介": data.get("desc", ""),
-            "minimax总结": data.get("summary", "")
-        })
+                feishu.write_to_base(token, {
+                    "视频标题": data["title"],
+                    "BV号": data["bvid"],
+                    "字幕内容": data["subtitle"][:2000],
+                    "抓取时间": timestamp_ms,
+                    "创建时间": timestamp_ms,
+                    "作者": data.get("author", ""),
+                    "封面图": data.get("封面图", ""),
+                    "简介": data.get("desc", ""),
+                    "minimax总结": data.get("summary", "")
+                })
         return jsonify({"status": "ok", "message": "保存成功"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
@@ -100,7 +100,7 @@ def api_collect():
                     "抓取时间": timestamp_ms,
                     "创建时间": timestamp_ms,
                     "作者": result["author"],
-                    "封面图": result["cover"],
+                    "封面图": result["封面图"],
                     "简介": result["desc"],
                     "minimax总结": summary
                 })
