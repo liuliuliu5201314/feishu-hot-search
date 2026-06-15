@@ -1,5 +1,6 @@
 import requests
 import json
+import re
 from datetime import datetime
 from flask import Flask, jsonify, Response, request
 
@@ -75,10 +76,10 @@ def write_to_base(token, bvid, title, subtitle):
     res = requests.post(url, headers=headers, json=data)
     return res.json()
 
-def send_feishu_message(token, content):
+def send_feishu_message(token, chat_id, content):
     url = "https://open.feishu.cn/open-apis/im/v1/messages"
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-    data = {"receive_id": CHAT_ID, "msg_type": "interactive", "content": json.dumps(content)}
+    data = {"receive_id": chat_id, "msg_type": "text", "content": json.dumps({"text": content})}
     res = requests.post(url, headers=headers, params={"receive_id_type": "chat_id"}, json=data)
     return res.json()
 
@@ -199,7 +200,7 @@ def api_push():
         data = request.json
         token = get_token()
         card = build_subtitle_card(data["bvid"], data["title"], data["author"], data["subtitle"])
-        result = send_feishu_message(token, card)
+        result = send_feishu_message(token, CHAT_ID, f"字幕提取完成\n视频: {data['title']}\n作者: {data['author']}\n\n字幕内容:\n{data['subtitle'][:1000]}")
         if result.get("code") == 0:
             return jsonify({"status": "ok", "message": "推送成功"})
         else:
@@ -219,6 +220,37 @@ def api_save():
             return jsonify({"status": "error", "message": str(result)})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
+
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    data = request.json
+    
+    if "challenge" in data:
+        return jsonify({"challenge": data["challenge"]})
+    
+    if "header" in data and data["header"].get("event_type") == "im.message.receive_v1":
+        event = data["event"]
+        message = event.get("message", {})
+        chat_id = message.get("chat_id", "")
+        content = json.loads(message.get("content", "{}"))
+        text = content.get("text", "")
+        
+        bvid_match = re.search(r"BV[a-zA-Z0-9]+", text)
+        if bvid_match:
+            bvid = bvid_match.group()
+            token = get_token()
+            result, error = get_bilibili_subtitle(bvid)
+            if error:
+                send_feishu_message(token, chat_id, f"提取失败: {error}")
+            else:
+                send_feishu_message(token, chat_id, f"字幕提取完成\n视频: {result['title']}\n作者: {result['author']}\n\n字幕内容:\n{result['subtitle'][:1000]}")
+                write_to_base(token, bvid, result["title"], result["subtitle"])
+    
+    return jsonify({"code": 0})
+
+@app.route("/api/hot")
+def api_hot():
+    return jsonify({"status": "ok", "message": "热搜功能已禁用"})
 
 if __name__ == "__main__":
     import os
