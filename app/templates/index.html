@@ -324,6 +324,12 @@
                 <button class="refresh-btn btn" onclick="fetchZhihuHot()">🔄 刷新</button>
             </div>
         </div>
+        
+        <div class="card" style="text-align: center;">
+            <button class="btn" onclick="collectHotData()" style="width: auto; padding: 14px 40px;">
+                📥 一键采集热搜到表格
+            </button>
+        </div>
     </div>
     
     <script>
@@ -454,6 +460,16 @@
         fetchBilibiliHot();
         fetchWeiboHot();
         fetchZhihuHot();
+        
+        async function collectHotData() {
+            try {
+                var res = await fetch('/api/collect-hot');
+                var data = await res.json();
+                alert(data.message);
+            } catch (e) {
+                alert('采集失败: ' + e.message);
+            }
+        }
     </script>
 </body>
 </html>

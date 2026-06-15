@@ -3,6 +3,7 @@ from .config import Config
 from .routes.webhook import webhook_bp
 from .routes.subtitle import subtitle_bp
 from .routes.hot import hot_bp
+from .routes.collect import collect_bp
 
 
 def create_app():
@@ -12,6 +13,7 @@ def create_app():
     app.register_blueprint(webhook_bp)
     app.register_blueprint(subtitle_bp)
     app.register_blueprint(hot_bp)
+    app.register_blueprint(collect_bp)
     
     @app.route("/")
     def index():

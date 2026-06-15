@@ -6,9 +6,13 @@ class Config:
     FEISHU_APP_SECRET = os.environ.get("FEISHU_APP_SECRET", "7JOAZJEanZMAweftGNorxc2QqhaahuBS")
     FEISHU_CHAT_ID = os.environ.get("FEISHU_CHAT_ID", "oc_e6c00175d7bf047de0f647d4c31db4f2")
     
-    # 飞书多维表格配置
+    # 飞书多维表格配置 - 字幕数据
     BASE_TOKEN = os.environ.get("BASE_TOKEN", "O87ebAsOKaDlsQst6nccQp2InTd")
     TABLE_ID = os.environ.get("TABLE_ID", "tblsRVZOdBJQndkM")
+    
+    # 飞书多维表格配置 - 热搜数据
+    HOT_BASE_TOKEN = os.environ.get("HOT_BASE_TOKEN", "XPAcblniKatqfjsw4v7cr5Ain8d")
+    HOT_TABLE_ID = os.environ.get("HOT_TABLE_ID", "tbl9vHI9I3Wxc4a9")
     
     # MiniMax API配置
     MINIMAX_API_KEY = os.environ.get("MINIMAX_API_KEY", "sk-cp-HebzlLy0eNiPmfxSE2Rghfr_hop33KPdJrPEZlCPn4OCb83v_sSvk-D2_WLkHcVHNNlo04uGdPEXsCDtlWQQVE3J6hnskSLzIDETE7zIA4P9BxRR6vZ_qOM")
