@@ -17,6 +17,28 @@ def get_token():
     res = requests.post(url, json={"app_id": APP_ID, "app_secret": APP_SECRET})
     return res.json().get("tenant_access_token")
 
+def resolve_short_url(url):
+    try:
+        res = requests.head(url, allow_redirects=True, timeout=5)
+        return res.url
+    except:
+        return url
+
+def extract_bvid(text):
+    bvid_match = re.search(r"BV[a-zA-Z0-9]+", text)
+    if bvid_match:
+        return bvid_match.group()
+    
+    url_match = re.search(r"https?://[^\s]+", text)
+    if url_match:
+        url = url_match.group()
+        if "b23.tv" in url or "bilibili.com" in url:
+            full_url = resolve_short_url(url)
+            bvid_match = re.search(r"BV[a-zA-Z0-9]+", full_url)
+            if bvid_match:
+                return bvid_match.group()
+    return None
+
 def get_bilibili_subtitle(bvid):
     headers = {"User-Agent": "Mozilla/5.0", "Referer": "https://www.bilibili.com/"}
     try:
@@ -235,9 +257,8 @@ def webhook():
         content = json.loads(message.get("content", "{}"))
         text = content.get("text", "")
         
-        bvid_match = re.search(r"BV[a-zA-Z0-9]+", text)
-        if bvid_match:
-            bvid = bvid_match.group()
+        bvid = extract_bvid(text)
+        if bvid:
             token = get_token()
             result, error = get_bilibili_subtitle(bvid)
             if error:
