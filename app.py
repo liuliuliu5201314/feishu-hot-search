@@ -243,6 +243,8 @@ def api_save():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
 
+processed_events = set()
+
 @app.route("/webhook", methods=["POST"])
 def webhook():
     data = request.json
@@ -251,6 +253,15 @@ def webhook():
         return jsonify({"challenge": data["challenge"]})
     
     if "header" in data and data["header"].get("event_type") == "im.message.receive_v1":
+        event_id = data["header"].get("event_id", "")
+        
+        if event_id in processed_events:
+            return jsonify({"code": 0})
+        processed_events.add(event_id)
+        
+        if len(processed_events) > 1000:
+            processed_events.clear()
+        
         event = data["event"]
         message = event.get("message", {})
         chat_id = message.get("chat_id", "")
