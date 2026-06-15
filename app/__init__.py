@@ -20,3 +20,6 @@ def create_app():
         return Response(html, content_type="text/html;charset=utf-8")
     
     return app
+
+
+app = create_app()
