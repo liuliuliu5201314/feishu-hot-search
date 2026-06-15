@@ -42,7 +42,7 @@ def api_save():
         now = datetime.now()
         timestamp_ms = int(now.timestamp() * 1000)
         
-                feishu.write_to_base(token, {
+        feishu.write_to_base(token, {
                     "视频标题": data["title"],
                     "BV号": data["bvid"],
                     "字幕内容": data["subtitle"][:2000],
