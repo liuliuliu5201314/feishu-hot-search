@@ -23,9 +23,9 @@ class HotSearchService:
         now = datetime.now()
         timestamp_ms = int(now.timestamp() * 1000)
         
-        bilibili_text = "\n".join([f"{i}. {item.get('keyword', '')}" for i, item in enumerate(bilibili_items[:10], 1)])
-        weibo_text = "\n".join([f"{i}. {item.get('keyword', '')}" for i, item in enumerate(weibo_items[:10], 1)])
-        zhihu_text = "\n".join([f"{i}. {item.get('keyword', '')}" for i, item in enumerate(zhihu_items[:10], 1)])
+        bilibili_text = "\n".join([f"{i}. {item.get('keyword', '')}" for i, item in enumerate(bilibili_items, 1)])
+        weibo_text = "\n".join([f"{i}. {item.get('keyword', '')}" for i, item in enumerate(weibo_items, 1)])
+        zhihu_text = "\n".join([f"{i}. {item.get('keyword', '')}" for i, item in enumerate(zhihu_items, 1)])
         
         fields = {
             "抓取时间": timestamp_ms,
