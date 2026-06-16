@@ -21,7 +21,7 @@ class ZhihuHotService:
             
             for i, title in enumerate(matches[:30], 1):
                 title = re.sub(r'<[^>]+>', '', title).strip()
-                if title and len(title) > 10:
+                if title:
                     items.append({
                         "rank": i,
                         "keyword": title,
