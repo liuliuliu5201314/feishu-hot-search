@@ -16,10 +16,11 @@ class ZhihuHotService:
             res = requests.get(url, headers=self.headers, proxies=self.proxies, timeout=15)
             
             items = []
-            pattern = r'<a href="https://www\.zhihu\.com/question/[^"]+"[^>]*>(.*?)</a>'
-            matches = re.findall(pattern, res.text)
+            # 只匹配标题列 td.al 内的链接，跳过右侧图标链接（&#xe652;）
+            pattern = r'<td class="al">\s*<div><a href="(https://www\.zhihu\.com/question/[^"]+)"[^>]*>(.*?)</a></div>'
+            matches = re.findall(pattern, res.text, re.DOTALL)
             
-            for i, title in enumerate(matches[:30], 1):
+            for i, (href, title) in enumerate(matches[:30], 1):
                 title = re.sub(r'<[^>]+>', '', title).strip()
                 if title:
                     items.append({
@@ -27,7 +28,7 @@ class ZhihuHotService:
                         "keyword": title,
                         "heat": "",
                         "excerpt": "",
-                        "url": f"https://www.zhihu.com/search?type=content&q={title}"
+                        "url": href
                     })
             
             if not items:
