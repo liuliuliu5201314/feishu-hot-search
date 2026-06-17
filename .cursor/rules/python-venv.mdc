@@ -1,0 +1,26 @@
+---
+description: 本项目 Python 命令必须使用 venv，禁止用全局 python
+alwaysApply: true
+---
+
+# Python 环境
+
+本项目使用 `venv/` 虚拟环境，**不要**直接调用全局 `python` / `pip`。
+
+## 命令规范
+
+- 运行脚本：`.\venv\Scripts\python.exe <script>`
+- 安装依赖：`.\venv\Scripts\pip.exe install -r requirements.txt`
+- 启动服务：`.\venv\Scripts\python.exe main.py`
+
+PowerShell 下也可先激活再执行：
+
+```powershell
+.\venv\Scripts\Activate.ps1
+python main.py
+```
+
+## 注意
+
+- 项目无 `.env` 时，`app/config.py` 会使用内置默认值；测试外部 API 前确认是否需要环境变量。
+- Cloud Agent 与本机 venv 无关；本机 Agent 会话按上述路径执行。
