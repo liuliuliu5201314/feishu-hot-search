@@ -1,0 +1,17 @@
+name: Xinzhi Sync
+
+on:
+  schedule:
+    # 每 5 分钟触发（GitHub Actions 最短约 5 分钟）
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render xinzhi sync
+        run: |
+          curl -sf -X POST \
+            --max-time 180 \
+            "${{ secrets.RENDER_SERVICE_URL }}/api/xinzhi/sync"

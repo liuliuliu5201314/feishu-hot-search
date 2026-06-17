@@ -4,6 +4,7 @@ from .routes.webhook import webhook_bp
 from .routes.subtitle import subtitle_bp
 from .routes.hot import hot_bp
 from .routes.collect import collect_bp
+from .routes.xinzhi import xinzhi_bp, start_xinzhi_poller
 
 
 def create_app():
@@ -14,6 +15,7 @@ def create_app():
     app.register_blueprint(subtitle_bp)
     app.register_blueprint(hot_bp)
     app.register_blueprint(collect_bp)
+    app.register_blueprint(xinzhi_bp)
     
     @app.route("/")
     def index():
@@ -21,6 +23,7 @@ def create_app():
             html = f.read()
         return Response(html, content_type="text/html;charset=utf-8")
     
+    start_xinzhi_poller(app)
     return app
 
 

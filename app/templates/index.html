@@ -330,8 +330,30 @@
                 📥 一键采集热搜到表格
             </button>
         </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon" style="background:#e8f5e9;">🌿</div>
+                <div class="card-title">新枝收藏 → 飞书同步</div>
+            </div>
+            <p style="color:#666;font-size:14px;margin-bottom:16px;">
+                绑定后每 2 分钟自动拉取新枝收藏，将公众号文章和 B 站视频同步到飞书多维表格。
+            </p>
+            <div id="xinzhi-bound" style="display:none;">
+                <p style="margin-bottom:12px;">已绑定账号：<strong id="xinzhi-user"></strong></p>
+                <button class="btn" onclick="syncXinzhiNow()" style="margin-right:10px;">立即同步</button>
+                <button class="btn" onclick="unbindXinzhi()" style="background:#ff6b6b;">解绑</button>
+                <div id="xinzhi-sync-result" style="margin-top:12px;color:#666;font-size:13px;"></div>
+            </div>
+            <div id="xinzhi-bind" style="display:none;text-align:center;">
+                <p style="margin-bottom:12px;color:#666;">用新枝 App 扫码绑定（个人页 → 数据联动 → 同步到 Obsidian 桌面端）</p>
+                <canvas id="xinzhi-qrcode" style="margin:0 auto;"></canvas>
+                <p id="xinzhi-bind-status" style="margin-top:12px;color:#999;font-size:13px;">等待扫码...</p>
+            </div>
+        </div>
     </div>
     
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <script>
         var currentData = null;
         
@@ -470,6 +492,69 @@
                 alert('采集失败: ' + e.message);
             }
         }
+
+        var xinzhiSessionId = null;
+        var xinzhiPollTimer = null;
+
+        async function loadXinzhiAccount() {
+            var res = await fetch('/api/xinzhi/account');
+            var data = await res.json();
+            if (data.bound) {
+                document.getElementById('xinzhi-bound').style.display = 'block';
+                document.getElementById('xinzhi-bind').style.display = 'none';
+                document.getElementById('xinzhi-user').textContent = data.user;
+                if (xinzhiPollTimer) clearInterval(xinzhiPollTimer);
+            } else {
+                document.getElementById('xinzhi-bound').style.display = 'none';
+                document.getElementById('xinzhi-bind').style.display = 'block';
+                await startXinzhiBind();
+            }
+        }
+
+        async function startXinzhiBind() {
+            if (xinzhiPollTimer) clearInterval(xinzhiPollTimer);
+            var res = await fetch('/api/xinzhi/bind', { method: 'POST' });
+            var data = await res.json();
+            if (data.status !== 'ok') {
+                document.getElementById('xinzhi-bind-status').textContent = data.message || '获取二维码失败';
+                return;
+            }
+            xinzhiSessionId = data.sessionId;
+            QRCode.toCanvas(document.getElementById('xinzhi-qrcode'), xinzhiSessionId, { width: 180 });
+            xinzhiPollTimer = setInterval(pollXinzhiBindStatus, 2000);
+        }
+
+        async function pollXinzhiBindStatus() {
+            if (!xinzhiSessionId) return;
+            var res = await fetch('/api/xinzhi/bind/status?sessionId=' + encodeURIComponent(xinzhiSessionId));
+            var data = await res.json();
+            if (data.bound) {
+                clearInterval(xinzhiPollTimer);
+                await loadXinzhiAccount();
+                return;
+            }
+            if (data.expired) {
+                clearInterval(xinzhiPollTimer);
+                document.getElementById('xinzhi-bind-status').textContent = '二维码已过期，正在刷新...';
+                await startXinzhiBind();
+                return;
+            }
+            document.getElementById('xinzhi-bind-status').textContent = '等待扫码...';
+        }
+
+        async function syncXinzhiNow() {
+            document.getElementById('xinzhi-sync-result').textContent = '同步中...';
+            var res = await fetch('/api/xinzhi/sync', { method: 'POST' });
+            var data = await res.json();
+            document.getElementById('xinzhi-sync-result').textContent = data.message || JSON.stringify(data);
+        }
+
+        async function unbindXinzhi() {
+            await fetch('/api/xinzhi/unbind', { method: 'POST' });
+            await loadXinzhiAccount();
+        }
+
+        loadXinzhiAccount();
     </script>
 </body>
 </html>

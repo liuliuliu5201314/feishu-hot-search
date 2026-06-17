@@ -11,6 +11,8 @@ class FeishuService:
         self.chat_id = Config.FEISHU_CHAT_ID
         self.base_token = Config.BASE_TOKEN
         self.table_id = Config.TABLE_ID
+        self.article_base_token = Config.ARTICLE_BASE_TOKEN
+        self.article_table_id = Config.ARTICLE_TABLE_ID
     
     def get_token(self):
         url = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal"
@@ -26,6 +28,15 @@ class FeishuService:
     
     def write_to_base(self, token, data):
         url = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{self.base_token}/tables/{self.table_id}/records"
+        headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+        res = requests.post(url, headers=headers, json={"fields": data})
+        return res.json()
+
+    def write_article_to_base(self, token, data):
+        url = (
+            f"https://open.feishu.cn/open-apis/bitable/v1/apps/"
+            f"{self.article_base_token}/tables/{self.article_table_id}/records"
+        )
         headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
         res = requests.post(url, headers=headers, json={"fields": data})
         return res.json()

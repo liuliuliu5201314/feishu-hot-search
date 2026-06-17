@@ -18,8 +18,8 @@ print('当前字段:')
 for item in data.get('data', {}).get('items', []):
     print(f"  {item.get('field_name')} (id: {item.get('field_id')})")
 
-# 删除多余的字段，只保留：文本、单选、日期、附件、抓取时间、B站热搜、微博热搜、知乎热搜
-fields_to_keep = ['文本', '单选', '日期', '附件', '抓取时间', 'B站热搜', '微博热搜', '知乎热搜']
+# 删除多余的字段；保留采集列 + ai查词（文本为主字段不可删）
+fields_to_keep = ['日期热搜采集', '抓取时间', 'B站热搜', '微博热搜', '知乎热搜', 'ai查词']
 fields_to_delete = [item for item in data.get('data', {}).get('items', []) if item.get('field_name') not in fields_to_keep]
 
 print(f'\n需要删除 {len(fields_to_delete)} 个字段:')

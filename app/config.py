@@ -23,5 +23,20 @@ class Config:
         "https": "socks5://User-001:User-001@115.190.242.8:1080"
     }
     
+    # 新枝同步配置
+    XINZHI_AUTH_FILE = os.environ.get("XINZHI_AUTH_FILE", "data/xinzhi_auth.json")
+    XINZHI_TOKEN = os.environ.get("XINZHI_TOKEN", "")
+    XINZHI_SESSION_ID = os.environ.get("XINZHI_SESSION_ID", "")
+    XINZHI_USER = os.environ.get("XINZHI_USER", "新枝用户")
+    XINZHI_SYNC_INTERVAL = int(os.environ.get("XINZHI_SYNC_INTERVAL", "120"))
+    XINZHI_POLL_ENABLED = os.environ.get("XINZHI_POLL_ENABLED", "true").lower() == "true"
+    XINZHI_SYNC_TYPES = os.environ.get("XINZHI_SYNC_TYPES", "wechat,bilibili")
+
+    # 飞书多维表格配置 - 新枝文章（公众号等）
+    # Wiki: https://jxxi08phou.feishu.cn/wiki/JZmswE7u2iTWGGkKjXScNRrNnKh?table=tblF2tvY8pSEjDjF
+    ARTICLE_WIKI_TOKEN = os.environ.get("ARTICLE_WIKI_TOKEN", "JZmswE7u2iTWGGkKjXScNRrNnKh")
+    ARTICLE_BASE_TOKEN = os.environ.get("ARTICLE_BASE_TOKEN", "PQBMbIK8saM22qsPNbTcsAIjnKg")
+    ARTICLE_TABLE_ID = os.environ.get("ARTICLE_TABLE_ID", "tblF2tvY8pSEjDjF")
+
     # 服务配置
     PORT = int(os.environ.get("PORT", 8080))

@@ -28,10 +28,11 @@ class HotSearchService:
         zhihu_text = "\n".join([f"{i}. {item.get('keyword', '')}" for i, item in enumerate(zhihu_items, 1)])
         
         fields = {
+            "日期热搜采集": f"{now.year}年{now.month}月{now.day}日热搜采集",
             "抓取时间": timestamp_ms,
             "B站热搜": bilibili_text,
             "微博热搜": weibo_text,
-            "知乎热搜": zhihu_text
+            "知乎热搜": zhihu_text,
         }
         
         data = {"fields": fields}
