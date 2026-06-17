@@ -115,7 +115,7 @@ def api_xinzhi_unbind():
     return jsonify({"status": "ok", "message": "已解绑新枝账号"})
 
 
-@xinzhi_bp.route("/api/xinzhi/sync", methods=["POST"])
+@xinzhi_bp.route("/api/xinzhi/sync", methods=["GET", "POST"])
 def api_xinzhi_sync():
     try:
         result = sync_service.sync_once()
