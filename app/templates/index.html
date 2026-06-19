@@ -239,15 +239,33 @@
             margin-top: 15px;
             width: 100%;
         }
-        .grid {
+        .hot-section {
+            max-width: 1600px;
+            margin: 0 auto 20px;
+        }
+        .grid-hot {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+        }
+        @media (max-width: 1200px) {
+            .grid-hot { grid-template-columns: repeat(3, 1fr); }
         }
         @media (max-width: 900px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
+            .grid-hot { grid-template-columns: 1fr; }
+        }
+        .grid-hot .card {
+            margin-bottom: 0;
+            padding: 18px;
+        }
+        .grid-hot .card-title {
+            font-size: 15px;
+        }
+        .grid-hot .hot-list {
+            max-height: 380px;
+        }
+        .grid-hot .hot-keyword {
+            font-size: 13px;
         }
         .platform-icon {
             width: 32px;
@@ -286,37 +304,32 @@
             border-color: #00a1d6;
             color: #fff;
         }
-        .page-tabs {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .page-tab {
-            min-width: 44px;
-            padding: 8px 16px;
-            border-radius: 999px;
-            border: 2px solid rgba(255,255,255,0.25);
-            background: rgba(255,255,255,0.12);
-            color: rgba(255,255,255,0.85);
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-        }
-        .page-tab.active {
-            background: #00a1d6;
-            border-color: #00a1d6;
-            color: #fff;
-        }
-        .grid-2 {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-        }
         .douyin-icon { background: #111; color: #fff; }
         .zhihu-search-icon { background: #0066ff; color: #fff; }
-        @media (max-width: 900px) {
-            .grid-2 { grid-template-columns: 1fr; }
+        .hot-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .hot-section-title {
+            color: rgba(255,255,255,0.9);
+            font-size: 15px;
+            font-weight: 500;
+        }
+        .hot-refresh-all {
+            padding: 8px 16px;
+            font-size: 13px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: rgba(255,255,255,0.9);
+            cursor: pointer;
+        }
+        .hot-refresh-all:hover {
+            background: rgba(255,255,255,0.2);
         }
     </style>
 </head>
@@ -350,72 +363,62 @@
             </div>
         </div>
 
-        <div class="page-tabs">
-            <button class="page-tab active" id="page-tab-1" onclick="switchHotPage(1)">1</button>
-            <button class="page-tab" id="page-tab-2" onclick="switchHotPage(2)">2</button>
-        </div>
-        
-        <div id="hot-page-1">
-        <div class="grid">
-            <div class="card">
-                <div class="card-header">
-                    <div class="platform-icon bilibili-icon">📺</div>
-                    <div class="card-title">哔哩哔哩热搜</div>
-                </div>
-                <div id="bilibili-loading" class="loading">⏳ 加载中...</div>
-                <div id="bilibili-error" class="error"></div>
-                <div id="bilibili-list" class="hot-list"></div>
-                <button class="refresh-btn btn" onclick="fetchBilibiliHot()">🔄 刷新</button>
+        <div class="hot-section">
+            <div class="hot-section-header">
+                <span class="hot-section-title">全网热搜 · 5 平台一览</span>
+                <button class="hot-refresh-all" onclick="fetchAllHot()">🔄 全部刷新</button>
             </div>
-            
-            <div class="card">
-                <div class="card-header">
-                    <div class="platform-icon weibo-icon">🔥</div>
-                    <div class="card-title">微博热搜</div>
+            <div class="grid-hot">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="platform-icon bilibili-icon">📺</div>
+                        <div class="card-title">哔哩哔哩</div>
+                    </div>
+                    <div id="bilibili-loading" class="loading">⏳ 加载中...</div>
+                    <div id="bilibili-error" class="error"></div>
+                    <div id="bilibili-list" class="hot-list"></div>
                 </div>
-                <div id="weibo-loading" class="loading">⏳ 加载中...</div>
-                <div id="weibo-error" class="error"></div>
-                <div id="weibo-list" class="hot-list"></div>
-                <button class="refresh-btn btn" onclick="fetchWeiboHot()">🔄 刷新</button>
-            </div>
-            
-            <div class="card">
-                <div class="card-header">
-                    <div class="platform-icon zhihu-icon">💡</div>
-                    <div class="card-title">知乎热榜</div>
-                </div>
-                <div id="zhihu-loading" class="loading">⏳ 加载中...</div>
-                <div id="zhihu-error" class="error"></div>
-                <div id="zhihu-list" class="hot-list"></div>
-                <button class="refresh-btn btn" onclick="fetchZhihuHot()">🔄 刷新</button>
-            </div>
-        </div>
-        </div>
 
-        <div id="hot-page-2" style="display:none;">
-        <div class="grid-2">
-            <div class="card">
-                <div class="card-header">
-                    <div class="platform-icon zhihu-search-icon">🔍</div>
-                    <div class="card-title">知乎大家都在搜</div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="platform-icon weibo-icon">🔥</div>
+                        <div class="card-title">微博</div>
+                    </div>
+                    <div id="weibo-loading" class="loading">⏳ 加载中...</div>
+                    <div id="weibo-error" class="error"></div>
+                    <div id="weibo-list" class="hot-list"></div>
                 </div>
-                <div id="zhihu-search-loading" class="loading">⏳ 加载中...</div>
-                <div id="zhihu-search-error" class="error"></div>
-                <div id="zhihu-search-list" class="hot-list"></div>
-                <button class="refresh-btn btn" onclick="fetchZhihuSearchHot()">🔄 刷新</button>
-            </div>
 
-            <div class="card">
-                <div class="card-header">
-                    <div class="platform-icon douyin-icon">🎵</div>
-                    <div class="card-title">抖音热搜</div>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="platform-icon zhihu-icon">💡</div>
+                        <div class="card-title">知乎热榜</div>
+                    </div>
+                    <div id="zhihu-loading" class="loading">⏳ 加载中...</div>
+                    <div id="zhihu-error" class="error"></div>
+                    <div id="zhihu-list" class="hot-list"></div>
                 </div>
-                <div id="douyin-loading" class="loading">⏳ 加载中...</div>
-                <div id="douyin-error" class="error"></div>
-                <div id="douyin-list" class="hot-list"></div>
-                <button class="refresh-btn btn" onclick="fetchDouyinHot()">🔄 刷新</button>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="platform-icon zhihu-search-icon">🔍</div>
+                        <div class="card-title">知乎大家在搜</div>
+                    </div>
+                    <div id="zhihu-search-loading" class="loading">⏳ 加载中...</div>
+                    <div id="zhihu-search-error" class="error"></div>
+                    <div id="zhihu-search-list" class="hot-list"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="platform-icon douyin-icon">🎵</div>
+                        <div class="card-title">抖音</div>
+                    </div>
+                    <div id="douyin-loading" class="loading">⏳ 加载中...</div>
+                    <div id="douyin-error" class="error"></div>
+                    <div id="douyin-list" class="hot-list"></div>
+                </div>
             </div>
-        </div>
         </div>
         
         <div class="card" style="text-align: center;">
@@ -572,23 +575,15 @@
             return num;
         }
         
-        fetchBilibiliHot();
-        fetchWeiboHot();
-        fetchZhihuHot();
-
-        var hotPage2Loaded = false;
-
-        function switchHotPage(page) {
-            document.getElementById('hot-page-1').style.display = page === 1 ? 'block' : 'none';
-            document.getElementById('hot-page-2').style.display = page === 2 ? 'block' : 'none';
-            document.getElementById('page-tab-1').classList.toggle('active', page === 1);
-            document.getElementById('page-tab-2').classList.toggle('active', page === 2);
-            if (page === 2 && !hotPage2Loaded) {
-                hotPage2Loaded = true;
-                fetchZhihuSearchHot();
-                fetchDouyinHot();
-            }
+        function fetchAllHot() {
+            fetchBilibiliHot();
+            fetchWeiboHot();
+            fetchZhihuHot();
+            fetchZhihuSearchHot();
+            fetchDouyinHot();
         }
+
+        fetchAllHot();
 
         function renderHotList(containerId, errorId, loadingId, items, options) {
             options = options || {};
