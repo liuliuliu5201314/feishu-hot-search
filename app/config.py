@@ -45,5 +45,7 @@ class Config:
     MRHLW_SYNC_HOUR = int(os.environ.get("MRHLW_SYNC_HOUR", "15"))
     MRHLW_SYNC_WINDOW_MINUTES = int(os.environ.get("MRHLW_SYNC_WINDOW_MINUTES", "5"))
 
+    PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "https://feishu-hot-search.onrender.com")
+
     # 服务配置
     PORT = int(os.environ.get("PORT", 8080))

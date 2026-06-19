@@ -1,7 +1,7 @@
 import re
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
-from urllib.parse import unquote, parse_qs, urlparse
+from urllib.parse import quote, unquote, parse_qs, urlparse
 from xml.etree import ElementTree as ET
 
 import requests
@@ -9,6 +9,7 @@ import requests
 from ..config import Config
 
 CN_TZ = timezone(timedelta(hours=8))
+IMG_DECRYPT_KEY = b"2019ysapp7527"
 
 
 class MrhlwService:
@@ -22,6 +23,63 @@ class MrhlwService:
             )
         }
         self.proxies = Config.PROXY
+
+    @staticmethod
+    def needs_decrypt(url):
+        if not url:
+            return False
+        if url.startswith("/api/mrhlw/cover"):
+            return False
+        return "bfsrt.jiekrrj.cn" in url
+
+    @staticmethod
+    def decrypt_image(data):
+        decrypted = bytearray(data)
+        for index in range(min(100, len(decrypted))):
+            decrypted[index] ^= IMG_DECRYPT_KEY[index % len(IMG_DECRYPT_KEY)]
+        return bytes(decrypted)
+
+    @staticmethod
+    def detect_image_mime(data):
+        if data[:3] == b"\xff\xd8\xff":
+            return "image/jpeg"
+        if data[:8] == b"\x89PNG\r\n\x1a\n":
+            return "image/png"
+        if data[:6] in (b"GIF87a", b"GIF89a"):
+            return "image/gif"
+        return "application/octet-stream"
+
+    @classmethod
+    def build_cover_proxy_url(cls, cover_url, base_url=""):
+        if not cover_url or not cls.needs_decrypt(cover_url):
+            return cover_url
+        proxy_path = f"/api/mrhlw/cover?url={quote(cover_url, safe='')}"
+        if base_url:
+            return f"{base_url.rstrip('/')}{proxy_path}"
+        return proxy_path
+
+    def fetch_decrypted_image(self, url):
+        headers = {
+            **self.headers,
+            "Referer": f"{self.BASE_URL}/",
+        }
+        last_error = None
+        for proxies in (self.proxies, None):
+            try:
+                response = requests.get(
+                    url,
+                    headers=headers,
+                    proxies=proxies,
+                    timeout=20,
+                )
+                response.raise_for_status()
+                data = response.content
+                if self.needs_decrypt(url):
+                    data = self.decrypt_image(data)
+                return data, self.detect_image_mime(data)
+            except requests.RequestException as exc:
+                last_error = exc
+        raise last_error
 
     def _get(self, url, timeout=20):
         last_error = None

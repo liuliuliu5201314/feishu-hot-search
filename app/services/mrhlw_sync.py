@@ -25,6 +25,19 @@ class MrhlwSyncService:
         self.base_token = Config.MRHLW_BASE_TOKEN
         self.table_id = Config.MRHLW_TABLE_ID
 
+    def _cover_for_storage(self, cover_url, base_url=""):
+        return MrhlwService.build_cover_proxy_url(cover_url, base_url)
+
+    def _normalize_item_covers(self, items, base_url=""):
+        normalized = []
+        for item in items:
+            current = dict(item)
+            cover = current.get("cover") or ""
+            current["cover_raw"] = cover
+            current["cover"] = self._cover_for_storage(cover, base_url)
+            normalized.append(current)
+        return normalized
+
     def _records_url(self):
         return (
             f"https://open.feishu.cn/open-apis/bitable/v1/apps/"
@@ -127,7 +140,7 @@ class MrhlwSyncService:
                     {
                         "field_name": "发布日期",
                         "operator": "is",
-                        "value": ["ExactDate", str(int(day_start / 1000))],
+                        "value": ["ExactDate", str(day_start)],
                     }
                 ],
             },
@@ -173,7 +186,7 @@ class MrhlwSyncService:
             "items": items,
         }
 
-    def get_daily_overview(self, target_date=None):
+    def get_daily_overview(self, target_date=None, base_url=""):
         target_date = target_date or datetime.now(CN_TZ).date()
         live_articles = self.mrhlw.fetch_today_articles(target_date)
         table_result = self.list_records_by_date(target_date)
@@ -199,11 +212,11 @@ class MrhlwSyncService:
             "date": target_date.isoformat(),
             "live_count": len(live_items),
             "table_count": len(table_items),
-            "live_items": live_items,
-            "table_items": table_items,
+            "live_items": self._normalize_item_covers(live_items, base_url),
+            "table_items": self._normalize_item_covers(table_items, base_url),
         }
 
-    def sync_once(self, target_date=None):
+    def sync_once(self, target_date=None, base_url=""):
         token = self.feishu.get_token()
         if not token:
             return {"status": "error", "message": "获取飞书 token 失败"}
@@ -226,7 +239,7 @@ class MrhlwSyncService:
 
             fields = {
                 "文本": article["title"],
-                "封面图": article.get("cover") or "",
+                "封面图": self._cover_for_storage(article.get("cover") or "", base_url),
                 "原文链接": link,
                 "发布日期": self._date_to_ms(article["date"]),
                 "作者": article.get("author") or "",
@@ -246,7 +259,7 @@ class MrhlwSyncService:
             inserted_items.append(
                 {
                     "title": article["title"],
-                    "cover": article.get("cover") or "",
+                    "cover": self._cover_for_storage(article.get("cover") or "", base_url),
                     "link": link,
                     "author": article.get("author") or "",
                     "categories": article.get("categories") or "",
