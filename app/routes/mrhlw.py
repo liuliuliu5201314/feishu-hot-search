@@ -97,11 +97,15 @@ def api_mrhlw_articles():
 @mrhlw_bp.route("/api/mrhlw/sync", methods=["GET", "POST"])
 def api_mrhlw_sync():
     try:
-        date_text = request.args.get("date") or (request.json or {}).get("date")
+        payload = request.get_json(silent=True) or {}
+        date_text = request.args.get("date") or payload.get("date")
         target_date = None
         if date_text:
             target_date = datetime.strptime(date_text, "%Y-%m-%d").date()
-        result = sync_service.sync_once(target_date, base_url=Config.PUBLIC_BASE_URL.rstrip("/") if Config.PUBLIC_BASE_URL else "")
+        result = sync_service.sync_once(
+            target_date,
+            base_url=Config.PUBLIC_BASE_URL.rstrip("/") if Config.PUBLIC_BASE_URL else "",
+        )
         code = 200 if result.get("status") == "ok" else 400
         return jsonify(result), code
     except Exception as exc:
