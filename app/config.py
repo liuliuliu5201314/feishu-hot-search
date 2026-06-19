@@ -38,5 +38,12 @@ class Config:
     ARTICLE_BASE_TOKEN = os.environ.get("ARTICLE_BASE_TOKEN", "PQBMbIK8saM22qsPNbTcsAIjnKg")
     ARTICLE_TABLE_ID = os.environ.get("ARTICLE_TABLE_ID", "tblF2tvY8pSEjDjF")
 
+    # 飞书多维表格配置 - 每日黑料网
+    MRHLW_BASE_TOKEN = os.environ.get("MRHLW_BASE_TOKEN", "I3X8bToaFaTx1LswJH9c2QFHnpd")
+    MRHLW_TABLE_ID = os.environ.get("MRHLW_TABLE_ID", "tblUuP2ecpsgMsBg")
+    MRHLW_SCHEDULER_ENABLED = os.environ.get("MRHLW_SCHEDULER_ENABLED", "true").lower() == "true"
+    MRHLW_SYNC_HOUR = int(os.environ.get("MRHLW_SYNC_HOUR", "15"))
+    MRHLW_SYNC_WINDOW_MINUTES = int(os.environ.get("MRHLW_SYNC_WINDOW_MINUTES", "5"))
+
     # 服务配置
     PORT = int(os.environ.get("PORT", 8080))

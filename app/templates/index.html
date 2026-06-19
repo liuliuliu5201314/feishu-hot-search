@@ -262,9 +262,37 @@
         .bilibili-icon { background: #00a1d6; color: #fff; }
         .weibo-icon { background: #ff6b6b; color: #fff; }
         .zhihu-icon { background: #0066ff; color: #fff; }
+        .top-nav {
+            max-width: 1200px;
+            margin: 0 auto 24px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .nav-link {
+            padding: 10px 18px;
+            border-radius: 999px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            background: rgba(255,255,255,0.12);
+            color: rgba(255,255,255,0.85);
+            border: 1px solid rgba(255,255,255,0.15);
+            transition: all 0.2s;
+        }
+        .nav-link:hover { background: rgba(255,255,255,0.2); color: #fff; }
+        .nav-link.active {
+            background: #00a1d6;
+            border-color: #00a1d6;
+            color: #fff;
+        }
     </style>
 </head>
 <body>
+    <nav class="top-nav">
+        <a class="nav-link active" href="/">B站工具箱</a>
+        <a class="nav-link" href="/mrhlw">黑料采集</a>
+    </nav>
     <div class="container">
         <h1>🚀 B站工具箱</h1>
         <p class="subtitle">字幕提取 · 全网热搜 · 实时更新</p>

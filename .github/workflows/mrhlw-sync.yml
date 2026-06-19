@@ -1,0 +1,17 @@
+name: Mrhlw Sync
+
+on:
+  schedule:
+    # 每天北京时间 15:00（UTC 07:00）
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger mrhlw sync
+        run: |
+          curl -sf -X POST \
+            --max-time 300 \
+            "${{ secrets.RENDER_SERVICE_URL }}/api/mrhlw/sync"

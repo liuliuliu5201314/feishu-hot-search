@@ -5,6 +5,7 @@ from .routes.subtitle import subtitle_bp
 from .routes.hot import hot_bp
 from .routes.collect import collect_bp
 from .routes.xinzhi import xinzhi_bp, start_xinzhi_poller
+from .routes.mrhlw import mrhlw_bp, start_mrhlw_scheduler
 
 
 def create_app():
@@ -16,14 +17,22 @@ def create_app():
     app.register_blueprint(hot_bp)
     app.register_blueprint(collect_bp)
     app.register_blueprint(xinzhi_bp)
+    app.register_blueprint(mrhlw_bp)
     
     @app.route("/")
     def index():
         with open("app/templates/index.html", "r", encoding="utf-8") as f:
             html = f.read()
         return Response(html, content_type="text/html;charset=utf-8")
+
+    @app.route("/mrhlw")
+    def mrhlw_page():
+        with open("app/templates/mrhlw.html", "r", encoding="utf-8") as f:
+            html = f.read()
+        return Response(html, content_type="text/html;charset=utf-8")
     
     start_xinzhi_poller(app)
+    start_mrhlw_scheduler(app)
     return app
 
 
