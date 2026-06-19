@@ -286,6 +286,38 @@
             border-color: #00a1d6;
             color: #fff;
         }
+        .page-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .page-tab {
+            min-width: 44px;
+            padding: 8px 16px;
+            border-radius: 999px;
+            border: 2px solid rgba(255,255,255,0.25);
+            background: rgba(255,255,255,0.12);
+            color: rgba(255,255,255,0.85);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .page-tab.active {
+            background: #00a1d6;
+            border-color: #00a1d6;
+            color: #fff;
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+        .douyin-icon { background: #111; color: #fff; }
+        .zhihu-search-icon { background: #0066ff; color: #fff; }
+        @media (max-width: 900px) {
+            .grid-2 { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
@@ -317,7 +349,13 @@
                 </div>
             </div>
         </div>
+
+        <div class="page-tabs">
+            <button class="page-tab active" id="page-tab-1" onclick="switchHotPage(1)">1</button>
+            <button class="page-tab" id="page-tab-2" onclick="switchHotPage(2)">2</button>
+        </div>
         
+        <div id="hot-page-1">
         <div class="grid">
             <div class="card">
                 <div class="card-header">
@@ -351,6 +389,33 @@
                 <div id="zhihu-list" class="hot-list"></div>
                 <button class="refresh-btn btn" onclick="fetchZhihuHot()">🔄 刷新</button>
             </div>
+        </div>
+        </div>
+
+        <div id="hot-page-2" style="display:none;">
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-header">
+                    <div class="platform-icon zhihu-search-icon">🔍</div>
+                    <div class="card-title">知乎大家都在搜</div>
+                </div>
+                <div id="zhihu-search-loading" class="loading">⏳ 加载中...</div>
+                <div id="zhihu-search-error" class="error"></div>
+                <div id="zhihu-search-list" class="hot-list"></div>
+                <button class="refresh-btn btn" onclick="fetchZhihuSearchHot()">🔄 刷新</button>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="platform-icon douyin-icon">🎵</div>
+                    <div class="card-title">抖音热搜</div>
+                </div>
+                <div id="douyin-loading" class="loading">⏳ 加载中...</div>
+                <div id="douyin-error" class="error"></div>
+                <div id="douyin-list" class="hot-list"></div>
+                <button class="refresh-btn btn" onclick="fetchDouyinHot()">🔄 刷新</button>
+            </div>
+        </div>
         </div>
         
         <div class="card" style="text-align: center;">
@@ -510,6 +575,78 @@
         fetchBilibiliHot();
         fetchWeiboHot();
         fetchZhihuHot();
+
+        var hotPage2Loaded = false;
+
+        function switchHotPage(page) {
+            document.getElementById('hot-page-1').style.display = page === 1 ? 'block' : 'none';
+            document.getElementById('hot-page-2').style.display = page === 2 ? 'block' : 'none';
+            document.getElementById('page-tab-1').classList.toggle('active', page === 1);
+            document.getElementById('page-tab-2').classList.toggle('active', page === 2);
+            if (page === 2 && !hotPage2Loaded) {
+                hotPage2Loaded = true;
+                fetchZhihuSearchHot();
+                fetchDouyinHot();
+            }
+        }
+
+        function renderHotList(containerId, errorId, loadingId, items, options) {
+            options = options || {};
+            document.getElementById(loadingId).style.display = 'none';
+            document.getElementById(errorId).style.display = 'none';
+            var html = '';
+            items.forEach(function(item) {
+                var rankClass = item.rank <= 3 ? 'hot-rank top3' : (item.rank <= 10 ? 'hot-rank top10' : 'hot-rank');
+                var label = '';
+                if (options.labelKey && item[options.labelKey]) {
+                    label = '<span style="color:#ff6b6b;font-size:11px;margin-left:5px;">热</span>';
+                }
+                html += '<div class="hot-item" onclick="window.open(\'' + item.url + '\',\'_blank\')">';
+                html += '<div class="' + rankClass + '">' + item.rank + '</div>';
+                html += '<div class="hot-info"><div class="hot-keyword">' + item.keyword + label + '</div>';
+                if (options.excerptKey && item[options.excerptKey]) {
+                    html += '<div class="hot-meta">' + item[options.excerptKey] + '</div>';
+                }
+                html += '</div>';
+                if (item.heat !== '' && item.heat !== undefined && item.heat !== null) {
+                    html += '<div class="hot-heat">' + formatHeat(item.heat) + '</div>';
+                }
+                html += '</div>';
+            });
+            document.getElementById(containerId).innerHTML = html;
+        }
+
+        async function fetchZhihuSearchHot() {
+            document.getElementById('zhihu-search-loading').style.display = 'block';
+            document.getElementById('zhihu-search-error').style.display = 'none';
+            document.getElementById('zhihu-search-list').innerHTML = '';
+            try {
+                var res = await fetch('/api/hot?platform=zhihu_search');
+                var data = await res.json();
+                if (data.status === 'error') throw new Error(data.message);
+                renderHotList('zhihu-search-list', 'zhihu-search-error', 'zhihu-search-loading', data.data, { labelKey: 'label' });
+            } catch (e) {
+                document.getElementById('zhihu-search-error').textContent = '❌ ' + e.message;
+                document.getElementById('zhihu-search-error').style.display = 'block';
+                document.getElementById('zhihu-search-loading').style.display = 'none';
+            }
+        }
+
+        async function fetchDouyinHot() {
+            document.getElementById('douyin-loading').style.display = 'block';
+            document.getElementById('douyin-error').style.display = 'none';
+            document.getElementById('douyin-list').innerHTML = '';
+            try {
+                var res = await fetch('/api/hot?platform=douyin');
+                var data = await res.json();
+                if (data.status === 'error') throw new Error(data.message);
+                renderHotList('douyin-list', 'douyin-error', 'douyin-loading', data.data);
+            } catch (e) {
+                document.getElementById('douyin-error').textContent = '❌ ' + e.message;
+                document.getElementById('douyin-error').style.display = 'block';
+                document.getElementById('douyin-loading').style.display = 'none';
+            }
+        }
         
         async function collectHotData() {
             try {
