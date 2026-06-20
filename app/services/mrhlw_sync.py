@@ -15,6 +15,9 @@ REQUIRED_FIELDS = [
     ("分类", 1),
     ("采集时间", 5),
     ("来源", 1),
+    ("改写标题", 1),
+    ("内容改编", 1),
+    ("生成的封面图", 17),
 ]
 
 
@@ -216,17 +219,9 @@ class MrhlwSyncService:
             "table_items": self._normalize_item_covers(table_items, base_url),
         }
 
-    def sync_once(self, target_date=None, base_url=""):
-        token = self.feishu.get_token()
-        if not token:
-            return {"status": "error", "message": "获取飞书 token 失败"}
-
-        ensure_result = self.ensure_table_fields(token)
-        if ensure_result.get("code") not in (0, None):
-            return {"status": "error", "message": f"初始化表格字段失败: {ensure_result}"}
-
+    def _sync_date(self, target_date, token, existing_links, base_url=""):
+        """同步指定日期文章，按链接去重；existing_links 会在成功插入后更新。"""
         articles = self.mrhlw.fetch_today_articles(target_date)
-        existing_links = self._load_existing_links(token)
         inserted = []
         skipped = []
         inserted_items = []
@@ -252,6 +247,7 @@ class MrhlwSyncService:
                 return {
                     "status": "error",
                     "message": f"写入失败: {json.dumps(result, ensure_ascii=False)}",
+                    "date": target_date.isoformat(),
                     "inserted": inserted,
                     "skipped": skipped,
                 }
@@ -267,28 +263,81 @@ class MrhlwSyncService:
             )
             existing_links.add(link)
 
-        if inserted:
-            summary = "\n".join(f"- {title}" for title in inserted[:20])
-            if len(inserted) > 20:
-                summary += f"\n... 另有 {len(inserted) - 20} 篇"
-            date_label = (target_date or datetime.now(CN_TZ).date()).isoformat()
-            self.feishu.send_message(
-                token,
-                (
-                    f"每日黑料网采集完成\n"
-                    f"日期: {date_label}\n"
-                    f"新增: {len(inserted)} 篇\n"
-                    f"跳过: {len(skipped)} 篇\n\n"
-                    f"{summary}"
-                ),
-            )
-
         return {
             "status": "ok",
-            "message": f"同步完成，新增 {len(inserted)} 篇，跳过 {len(skipped)} 篇",
+            "date": target_date.isoformat(),
             "inserted_count": len(inserted),
             "skipped_count": len(skipped),
             "inserted": inserted,
             "inserted_items": inserted_items,
             "skipped": skipped,
+        }
+
+    def sync_once(self, target_date=None, base_url="", fill_previous_day=True):
+        token = self.feishu.get_token()
+        if not token:
+            return {"status": "error", "message": "获取飞书 token 失败"}
+
+        ensure_result = self.ensure_table_fields(token)
+        if ensure_result.get("code") not in (0, None):
+            return {"status": "error", "message": f"初始化表格字段失败: {ensure_result}"}
+
+        existing_links = self._load_existing_links(token)
+        today = datetime.now(CN_TZ).date()
+        explicit_date = target_date is not None
+
+        if explicit_date:
+            dates = [target_date]
+        else:
+            dates = []
+            if fill_previous_day:
+                dates.append(today - timedelta(days=1))
+            dates.append(today)
+
+        day_results = []
+        total_inserted = 0
+        total_skipped = 0
+        all_inserted_titles = []
+
+        for sync_date in dates:
+            result = self._sync_date(sync_date, token, existing_links, base_url)
+            if result.get("status") == "error":
+                result["day_results"] = day_results
+                return result
+            day_results.append(result)
+            total_inserted += result.get("inserted_count", 0)
+            total_skipped += result.get("skipped_count", 0)
+            all_inserted_titles.extend(result.get("inserted", []))
+
+        if all_inserted_titles:
+            summary = "\n".join(f"- {title}" for title in all_inserted_titles[:20])
+            if len(all_inserted_titles) > 20:
+                summary += f"\n... 另有 {len(all_inserted_titles) - 20} 篇"
+            day_lines = []
+            for item in day_results:
+                label = item.get("date", "")
+                day_lines.append(
+                    f"{label}: 新增 {item.get('inserted_count', 0)}，跳过 {item.get('skipped_count', 0)}"
+                )
+            day_summary = "\n".join(day_lines)
+            self.feishu.send_message(
+                token,
+                (
+                    f"每日黑料网采集完成\n"
+                    f"{day_summary}\n"
+                    f"合计新增: {total_inserted} 篇，跳过: {total_skipped} 篇\n\n"
+                    f"{summary}"
+                ),
+            )
+
+        date_label = dates[-1].isoformat()
+        return {
+            "status": "ok",
+            "message": f"同步完成，新增 {total_inserted} 篇，跳过 {total_skipped} 篇",
+            "date": date_label,
+            "dates": [d.isoformat() for d in dates],
+            "inserted_count": total_inserted,
+            "skipped_count": total_skipped,
+            "inserted": all_inserted_titles,
+            "day_results": day_results,
         }

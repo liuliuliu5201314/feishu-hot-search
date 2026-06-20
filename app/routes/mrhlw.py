@@ -7,10 +7,12 @@ from flask import Blueprint, Response, jsonify, request
 from ..config import Config
 from ..services.mrhlw import MrhlwService
 from ..services.mrhlw_sync import MrhlwSyncService
+from ..services.mrhlw_title_rewrite import MrhlwTitleRewriteService
 
 mrhlw_bp = Blueprint("mrhlw", __name__)
 sync_service = MrhlwSyncService()
 mrhlw_service = MrhlwService()
+title_rewrite_service = MrhlwTitleRewriteService()
 
 _scheduler_started = False
 _scheduler_lock = threading.Lock()
@@ -100,13 +102,72 @@ def api_mrhlw_sync():
         payload = request.get_json(silent=True) or {}
         date_text = request.args.get("date") or payload.get("date")
         target_date = None
+        fill_previous_day = True
         if date_text:
             target_date = datetime.strptime(date_text, "%Y-%m-%d").date()
+            fill_previous_day = False
+        else:
+            raw = request.args.get("fill_previous_day") or payload.get("fill_previous_day")
+            if raw is not None and str(raw).lower() in ("0", "false", "no"):
+                fill_previous_day = False
         result = sync_service.sync_once(
             target_date,
             base_url=Config.PUBLIC_BASE_URL.rstrip("/") if Config.PUBLIC_BASE_URL else "",
+            fill_previous_day=fill_previous_day,
         )
         code = 200 if result.get("status") == "ok" else 400
+        return jsonify(result), code
+    except Exception as exc:
+        return jsonify({"status": "error", "message": str(exc)}), 500
+
+
+@mrhlw_bp.route("/api/mrhlw/rewrite-titles/pending")
+def api_mrhlw_rewrite_titles_pending():
+    try:
+        limit = request.args.get("limit", 50, type=int)
+        only_empty = request.args.get("all", "").lower() not in ("1", "true", "yes")
+        result = title_rewrite_service.list_pending(limit=limit, only_empty=only_empty)
+        code = 200 if result.get("status") == "ok" else 400
+        return jsonify(result), code
+    except Exception as exc:
+        return jsonify({"status": "error", "message": str(exc)}), 500
+
+
+@mrhlw_bp.route("/api/mrhlw/rewrite-titles", methods=["POST"])
+def api_mrhlw_rewrite_titles_apply():
+    try:
+        payload = request.get_json(silent=True) or {}
+        items = payload.get("items") or []
+        if not items:
+            return jsonify({"status": "error", "message": "缺少 items"}), 400
+        result = title_rewrite_service.apply_rewrites(items)
+        code = 200 if result.get("status") in ("ok", "partial") else 400
+        return jsonify(result), code
+    except Exception as exc:
+        return jsonify({"status": "error", "message": str(exc)}), 500
+
+
+@mrhlw_bp.route("/api/mrhlw/rewrite-content/pending")
+def api_mrhlw_rewrite_content_pending():
+    try:
+        limit = request.args.get("limit", 50, type=int)
+        only_empty = request.args.get("all", "").lower() not in ("1", "true", "yes")
+        result = title_rewrite_service.list_pending_content(limit=limit, only_empty=only_empty)
+        code = 200 if result.get("status") == "ok" else 400
+        return jsonify(result), code
+    except Exception as exc:
+        return jsonify({"status": "error", "message": str(exc)}), 500
+
+
+@mrhlw_bp.route("/api/mrhlw/rewrite-content", methods=["POST"])
+def api_mrhlw_rewrite_content_apply():
+    try:
+        payload = request.get_json(silent=True) or {}
+        items = payload.get("items") or []
+        if not items:
+            return jsonify({"status": "error", "message": "缺少 items"}), 400
+        result = title_rewrite_service.apply_content(items)
+        code = 200 if result.get("status") in ("ok", "partial") else 400
         return jsonify(result), code
     except Exception as exc:
         return jsonify({"status": "error", "message": str(exc)}), 500

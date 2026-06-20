@@ -1,0 +1,42 @@
+---
+description: 黑料采集标题改写为知乎风格（Cursor AI + 飞书表）
+alwaysApply: false
+---
+
+# 黑料采集 · 知乎标题与内容改编
+
+用户要求改写黑料表时，**使用 Cursor 大模型**，**禁止**调用 MiniMax 或项目内其他 LLM API。
+
+## 固定规则
+
+| 列 | 提示词 |
+|----|--------|
+| 改写标题 | `app/prompts/mrhlw_zhihu_title.txt` |
+| 内容改编 | `app/prompts/mrhlw_zhihu_content.txt`（约600字，开篇必须有爆点） |
+
+- 只写目标列，**不修改**「文本」原文
+- 飞书写入：飞书机器人 OpenAPI
+
+## 标题流程
+
+```powershell
+.\venv\Scripts\python.exe scripts\mrhlw_title_rewrite.py pending --limit 10
+.\venv\Scripts\python.exe scripts\mrhlw_title_rewrite.py apply --json '[{"record_id":"recxxx","rewrite_title":"..."}]'
+```
+
+## 内容改编流程
+
+```powershell
+.\venv\Scripts\python.exe scripts\mrhlw_title_rewrite.py pending-content --limit 10
+.\venv\Scripts\python.exe scripts\mrhlw_title_rewrite.py apply-content --file data\mrhlw_content_batch.json
+```
+
+## 封面图流程
+
+- 本地保存目录：`配图/`
+- 飞书列名：**生成的封面图**（附件字段）
+- 生图用 Cursor `GenerateImage`，再上传：
+
+```powershell
+.\venv\Scripts\python.exe scripts\mrhlw_attach_cover.py --record-id recxxx --image 配图\cover.png
+```
